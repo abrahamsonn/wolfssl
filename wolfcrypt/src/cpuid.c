@@ -59,8 +59,6 @@
 
     static word32 cpuid_flag(word32 leaf, word32 sub, word32 num, word32 bit)
     {
-        (void)sub;
-
         int got_intel_cpu = 0;
         unsigned int reg[5];
 
