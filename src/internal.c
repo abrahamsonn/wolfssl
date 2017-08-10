@@ -19391,7 +19391,7 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
             ERROR_OUT(keySz, exit_dpk);
         }
 
-        if (keySz < ssl->options.minRsaKeySz) {
+        if (keySz < (word32) ssl->options.minRsaKeySz) {
             WOLFSSL_MSG("RSA key size too small");
             ERROR_OUT(RSA_KEY_SIZE_E, exit_dpk);
         }
@@ -19438,7 +19438,7 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
 
         /* Check it meets the minimum ECC key size requirements. */
         keySz = wc_ecc_size((ecc_key*)ssl->hsKey);
-        if (keySz < ssl->options.minEccKeySz) {
+        if (keySz < (word32) ssl->options.minEccKeySz) {
             WOLFSSL_MSG("ECC key size too small");
             ERROR_OUT(ECC_KEY_SIZE_E, exit_dpk);
         }

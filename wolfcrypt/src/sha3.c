@@ -449,7 +449,7 @@ static int Sha3Update(Sha3* sha3, const byte* data, word32 len, byte p)
             sha3->i = 0;
         }
     }
-    while (len >= (p * 8))
+    while (len >= (word32) (p * 8))
     {
         for (i = 0; i < p; i++)
             sha3->s[i] ^= Load64BitBigEndian(data + 8 * i);

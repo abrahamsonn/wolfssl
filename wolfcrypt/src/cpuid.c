@@ -75,10 +75,14 @@
             XMEMCMP((char *)&(reg[ECX]), "ntel", 4) == 0) {
             got_intel_cpu = 1;
         }
+
+        #ifndef _MSC_VER
         if (got_intel_cpu) {
             cpuid(reg, leaf, sub);
             return ((reg[num] >> bit) & 0x1);
         }
+        #endif
+
         return 0;
     }
 
