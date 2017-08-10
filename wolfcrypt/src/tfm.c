@@ -2655,10 +2655,10 @@ static int s_is_power_of_two(fp_digit b, int *p)
 /* a/b => cb + d == a */
 static int fp_div_d(fp_int *a, fp_digit b, fp_int *c, fp_digit *d)
 {
-  fp_int   q  = 0;
-  fp_word  w  = 0;
-  fp_digit t  = 0;
-  int      ix = 0;
+  fp_int   q;
+  fp_word  w;
+  fp_digit t;
+  int      ix;
 
   /* cannot divide by zero */
   if (b == 0) {
