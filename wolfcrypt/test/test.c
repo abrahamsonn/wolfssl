@@ -3189,7 +3189,7 @@ int poly1305_test(void)
     Poly1305 enc;
 
     /* MSBuild-friendly declaration of an empty array */
-    static const byte empty[0];
+    static const byte *empty;
 
     static const byte msg1[] =
     {
