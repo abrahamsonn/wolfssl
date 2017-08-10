@@ -19358,7 +19358,8 @@ exit_scke:
 int DecodePrivateKey(WOLFSSL *ssl, word16* length)
 {
     int      ret;
-    int      keySz;
+    /* previous declaration of keySz threw conversion warnings */
+    word32   keySz;
     word32   idx;
 
     /* make sure private key exists */
