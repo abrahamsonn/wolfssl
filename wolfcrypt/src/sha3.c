@@ -432,7 +432,7 @@ static int Sha3Update(Sha3* sha3, const byte* data, word32 len, byte p)
     {
         l = p * 8 - sha3->i;
         if (l > len)
-            l = (word32) len;
+            l = (byte) len;
 
         t = &sha3->t[sha3->i];
         for (i = 0; i < l; i++)
