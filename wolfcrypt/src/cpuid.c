@@ -59,11 +59,19 @@
 
     static word32 cpuid_flag(word32 leaf, word32 sub, word32 num, word32 bit)
     {
+        (void) sub;
+
         int got_intel_cpu = 0;
         unsigned int reg[5];
 
         reg[4] = '\0';
+
+        #ifndef _MSC_VER
         cpuid(reg, 0, 0);
+        #else
+        cpuid(reg, 0);
+        #endif /* _MSC_VER */ 
+
         if (XMEMCMP((char *)&(reg[EBX]), "Genu", 4) == 0 &&
             XMEMCMP((char *)&(reg[EDX]), "ineI", 4) == 0 &&
             XMEMCMP((char *)&(reg[ECX]), "ntel", 4) == 0) {

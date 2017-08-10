@@ -19396,7 +19396,14 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
         }
 
         /* Return the maximum signature length. */
-        *length = (word16)keySz;
+        if (*length >= keySz) {
+            *length = (word16) keySz;
+        }
+        else {
+            /* If keySz is larger than length, then you're going to lose    *
+             * data when trying to assign keySz to length*/
+            *length = 65535;
+        }
 
         goto exit_dpk;
     }
