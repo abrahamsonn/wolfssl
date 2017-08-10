@@ -77,12 +77,14 @@
         }
 
         if (got_intel_cpu) {
+            #ifndef _MSC_VER
             cpuid(reg, leaf, sub);
+            #endif
             return ((reg[num] >> bit) & 0x1);
         }
         else {
             /* The arguments are only used in the above branch. This        *
-             * prevents MSBuild or the compiler from throwing unreferenced  *
+             * prevents the compiler from throwing unreferenced  *
              * variable warnings.                                           */
             (void)leaf;
             (void)sub;
