@@ -9274,6 +9274,8 @@ int wc_SetSubjectKeyId(Cert *cert, const char* file)
 int wc_SetAuthKeyIdFromCert(Cert *cert, const byte *der, int derSz)
 {
     int ret;
+    size_t akid_size;
+    size_t extSubjKeyId_size;
 
 #ifdef WOLFSSL_SMALL_STACK
     DecodedCert* decoded;
@@ -9312,19 +9314,15 @@ int wc_SetAuthKeyIdFromCert(Cert *cert, const byte *der, int derSz)
     }
 
     /* SKID invalid size */
-    /* The following if defined prevents the compiler from giving constant  *
-     * comparison warnings                                                  */
-    #if !defined(WOLFSSL_CERT_EXT) || defined(NO_ASN)
-    if (sizeof(cert->akid) < sizeof(decoded->extSubjKeyId)) {
-    #endif
+    akid_size         = sizeof(cert->akid);
+    extSubjKeyId_size = sizeof(decoded->extSubjKeyId);
+    if (akid_size < extSubjKeyId_size) {
         FreeDecodedCert(decoded);
         #ifdef WOLFSSL_SMALL_STACK
             XFREE(decoded, NULL, DYNAMIC_TYPE_TMP_BUFFER);
         #endif
         return MEMORY_E;
-    #if !defined(WOLFSSL_CERT_EXT) || defined(NO_ASN)
     }
-    #endif
 
     /* Put the SKID of CA to AKID of certificate */
     XMEMCPY(cert->akid, decoded->extSubjKeyId, KEYID_SIZE);
