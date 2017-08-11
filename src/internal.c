@@ -19390,7 +19390,7 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
             ERROR_OUT(keySz, exit_dpk);
         }
 
-        if (keySz < (word32) ssl->options.minRsaKeySz) {
+        if (keySz < ssl->options.minRsaKeySz) {
             WOLFSSL_MSG("RSA key size too small");
             ERROR_OUT(RSA_KEY_SIZE_E, exit_dpk);
         }
