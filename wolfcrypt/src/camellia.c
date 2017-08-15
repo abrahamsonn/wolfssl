@@ -1598,10 +1598,11 @@ int wc_CamelliaDecryptDirect(Camellia* cam, byte* out, const byte* in)
 
 int wc_CamelliaCbcEncrypt(Camellia* cam, byte* out, const byte* in, word32 sz)
 {
+    word32 blocks = sz / CAMELLIA_BLOCK_SIZE;
+
     if (cam == NULL || out == NULL || in == NULL) {
         return BAD_FUNC_ARG;
     }
-    word32 blocks = sz / CAMELLIA_BLOCK_SIZE;
 
     while (blocks--) {
         xorbuf((byte*)cam->reg, in, CAMELLIA_BLOCK_SIZE);
