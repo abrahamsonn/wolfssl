@@ -3188,7 +3188,7 @@ int poly1305_test(void)
     byte     tag[16];
     Poly1305 enc;
 
-    static const byte *empty;
+    static const byte empty[] = { };
 
     static const byte msg1[] =
     {
