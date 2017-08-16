@@ -9800,7 +9800,7 @@ int AddSession(WOLFSSL* ssl)
     }
 
     if (error == 0) {
-        session->ticketLen = ticLen;
+        session->ticketLen = (word16) ticLen;
         XMEMCPY(session->ticket, ssl->session.ticket, ticLen);
     } else { /* cleanup, reset state */
         session->ticket    = session->staticTicket;
@@ -23082,7 +23082,7 @@ void* wolfSSL_GetRsaDecCtx(WOLFSSL* ssl)
         (void)depth;
         WOLFSSL_STUB("wolfSSL_CTX_set_verify_depth");
 #else
-        ctx->verifyDepth = depth;
+        ctx->verifyDepth = (byte) depth;
 #endif
     }
 
@@ -24013,9 +24013,10 @@ int wolfSSL_X509_NAME_get_sz(WOLFSSL_X509_NAME* name)
 int wolfSSL_set_tlsext_host_name(WOLFSSL* ssl, const char* host_name)
 {
     int ret;
+    word16 host_name_length = (word16) XSTRLEN(host_name);
     WOLFSSL_ENTER("wolfSSL_set_tlsext_host_name");
     ret = wolfSSL_UseSNI(ssl, WOLFSSL_SNI_HOST_NAME,
-            host_name, XSTRLEN(host_name));
+            host_name, host_name_legnth);
     WOLFSSL_LEAVE("wolfSSL_set_tlsext_host_name", ret);
     return ret;
 }
