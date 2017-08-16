@@ -55,7 +55,7 @@
 #if defined(HAVE_NTRU) || defined(HAVE_QSH)
     static int TLSX_CreateNtruKey(WOLFSSL* ssl, int type);
 #endif
-#if !defined(HAVE_FIPS)
+#ifndef HAVE_FIPS
     #include <wolfssl/wolfcrypt/sha512.h>
 #endif
 
