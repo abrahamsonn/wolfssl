@@ -59,15 +59,17 @@
 
     static word32 cpuid_flag(word32 leaf, word32 sub, word32 num, word32 bit)
     {
+        (void)sub;
+
         int got_intel_cpu = 0;
         unsigned int reg[5];
 
         reg[4] = '\0';
 
         #ifndef _MSC_VER
-        cpuid(reg, 0, 0);
+        cpuid(reg, 0, 0);   /* cpuid call with subfunction ID "0" */
         #else
-        cpuid(reg, 0);
+        cpuid(reg, 0);      /* cpuid call with no subfunction ID */
         #endif /* _MSC_VER */ 
 
         if (XMEMCMP((char *)&(reg[EBX]), "Genu", 4) == 0 &&
@@ -76,7 +78,11 @@
             got_intel_cpu = 1;
         }
         if (got_intel_cpu) {
-            cpuid(reg, leaf, sub);
+            #ifndef _MSC_VER
+            cpuid(reg, leaf, sub);  /* cpuid call with subfunction ID "sub" */
+            #else
+            cpuid(reg, leaf);       /* cpuid call with no subfunction ID */
+            #endif /* _MSC_VER */ 
             return ((reg[num] >> bit) & 0x1);
         }
         return 0;

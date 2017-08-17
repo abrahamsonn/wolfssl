@@ -55,7 +55,9 @@
 #if defined(HAVE_NTRU) || defined(HAVE_QSH)
     static int TLSX_CreateNtruKey(WOLFSSL* ssl, int type);
 #endif
-
+#ifndef HAVE_FIPS
+    #include <wolfssl/wolfcrypt/sha512.h>
+#endif
 
 #ifndef NO_TLS
 
@@ -4322,7 +4324,7 @@ static word16 TLSX_SupportedVersions_GetSize(void* data)
     cnt += 2;
 #endif
 
-    return OPAQUE8_LEN + cnt * OPAQUE16_LEN;
+    return (word16) (OPAQUE8_LEN + cnt * OPAQUE16_LEN);
 }
 
 /* Writes the SupportedVersions extension into the buffer.
@@ -4344,7 +4346,7 @@ static word16 TLSX_SupportedVersions_Write(void* data, byte* output)
     cnt += 2;
 #endif
 
-    *(output++) = cnt * OPAQUE16_LEN;
+    *(output++) = (byte) (cnt * OPAQUE16_LEN);
     for (i = 0; i < cnt; i++) {
         /* TODO: [TLS13] Remove code when TLS v1.3 becomes an RFC. */
         if (pv.minor - i == TLSv1_3_MINOR) {
@@ -4356,10 +4358,11 @@ static word16 TLSX_SupportedVersions_Write(void* data, byte* output)
         }
 
         *(output++) = pv.major;
-        *(output++) = pv.minor - i;
+        *(output++) = (byte) (pv.minor - i);
+
     }
 
-    return OPAQUE8_LEN + cnt * OPAQUE16_LEN;
+    return (word16) (OPAQUE8_LEN + cnt * OPAQUE16_LEN);
 }
 
 /* Parse the SupportedVersions extension.

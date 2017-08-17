@@ -9265,7 +9265,9 @@ int wc_SetAuthKeyIdFromCert(Cert *cert, const byte *der, int derSz)
     }
 
     /* SKID invalid size */
-    if (sizeof(cert->akid) < sizeof(decoded->extSubjKeyId)) {
+    size_t akid_size = sizeof(cert->akid);
+    size_t extSubjKeyId_size = sizeof(decoded->extSubjKeyId);
+    if (akid_size < extSubjKeyId_size) {
         FreeDecodedCert(decoded);
         #ifdef WOLFSSL_SMALL_STACK
             XFREE(decoded, NULL, DYNAMIC_TYPE_TMP_BUFFER);

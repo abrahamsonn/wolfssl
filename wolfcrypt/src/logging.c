@@ -41,6 +41,12 @@
     }
 #endif
 
+#ifdef _WIN32
+    /* This prevents VS/MSBuild from freaking out with the safe usage of    *
+     * the sprintf method                                                   */
+    #define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
 static wolfSSL_Mutex debug_mutex; /* mutex for access to debug structure */
 

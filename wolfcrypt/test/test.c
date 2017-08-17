@@ -3196,7 +3196,13 @@ int poly1305_test(void)
     byte     tag[16];
     Poly1305 enc;
 
+    /* The following ifdef is necessary, as MSBuild does not like 0 length  *
+     * arrays at all.*/
+#ifndef _WIN32
     static const byte empty[] = { };
+#else
+    static const byte *empty = NULL;
+#endif
 
     static const byte msg1[] =
     {
