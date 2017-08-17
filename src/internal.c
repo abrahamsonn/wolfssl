@@ -1853,13 +1853,21 @@ void InitSuites(Suites* suites, ProtocolVersion pv, int keySz, word16 haveRSA,
     word16 idx = 0;
     int    tls    = pv.major == SSLv3_MAJOR && pv.minor >= TLSv1_MINOR;
     int    tls1_2 = pv.major == SSLv3_MAJOR && pv.minor >= TLSv1_2_MINOR;
-#ifdef WOLFSSL_TLS13
+#if defined(WOLFSSL_TLS13) && ( \
+                                defined(BUILD_TLS_AES_128_GCM_SHA256)       || \
+                                defined(BUILD_TLS_AES_256_GCM_SHA384)       || \
+                                defined(BUILD_TLS_CHACHA20_POLY1305_SHA256) || \
+                                defined(BUILD_TLS_AES_128_CCM_SHA256)       || \
+                                defined(BUILD_TLS_AES_128_CCM_8_SHA256)        \
+                              )
+    /* The above chain of logical OR prevents tls1_3 from being uselessly   *
+     * created                                                              */
     int    tls1_3 = IsAtLeastTLSv1_3(pv);
 #endif
     int    dtls   = 0;
     int    haveRSAsig = 1;
 
-    (void)tls;  /* shut up compiler */
+    (void)tls;  /* shuts up the compiler */
     (void)tls1_2;
     (void)dtls;
     (void)haveDH;
@@ -20297,8 +20305,8 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
 
         /* now write to output */
         /* first version */
-        output[idx++] = ssl->version.major;
-        output[idx++] = ssl->version.minor;
+        output[idx++] = (byte) ssl->version.major;
+        output[idx++] = (byte) ssl->version.minor;
 
         /* then random and session id */
         if (!ssl->options.resuming) {

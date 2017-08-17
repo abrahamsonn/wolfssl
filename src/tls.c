@@ -4314,7 +4314,7 @@ int TLSX_UseQSHScheme(TLSX** extensions, word16 name, byte* pKey, word16 pkeySz,
  */
 static word16 TLSX_SupportedVersions_GetSize(void* data)
 {
-    (void)data;
+    (void) data;
 
     /* TLS v1.2 and TLS v1.3  */
     int cnt = 2;
