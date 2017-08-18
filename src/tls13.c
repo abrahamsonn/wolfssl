@@ -6760,6 +6760,7 @@ int wolfSSL_CTX_no_dhe_psk(WOLFSSL_CTX* ctx)
  * returns BAD_FUNC_ARG when ssl is NULL, or not using TLS v1.3 and 0 on
  * success.
  */
+#ifdef WOLFSSL_TLS13
 int wolfSSL_no_dhe_psk(WOLFSSL* ssl)
 {
     if (ssl == NULL || !IsAtLeastTLSv1_3(ssl->version))
@@ -6769,6 +6770,15 @@ int wolfSSL_no_dhe_psk(WOLFSSL* ssl)
 
     return 0;
 }
+#else
+int wolfSSL_no_dhe_psk(WOLFSSL* ssl)
+{
+    printf("wolfSSL_no_dhe_psk requires that wolfSSL be configured with TLS "
+           "1.3. For more information, please go to "
+           "https://wolfssl.com/wolfSSL/Blog/Entries/2017/8/7_wolfSSL_3.12.0_Now_Available.html\n");
+    return 0;
+}
+#endif /* WOLFSSL_TLS13 */
 
 /* Update the keys for encryption and decryption.
  * If using non-blocking I/O and SSL_ERROR_WANT_WRITE is returned then
@@ -6779,6 +6789,7 @@ int wolfSSL_no_dhe_psk(WOLFSSL* ssl)
  * SSL_ERROR_WANT_WRITE when non-blocking I/O is not ready to write,
  * SSL_SUCCESS on success and otherwise failure.
  */
+#ifdef WOLFSSL_TLS13
 int wolfSSL_update_keys(WOLFSSL* ssl)
 {
     int ret;
@@ -6793,6 +6804,15 @@ int wolfSSL_update_keys(WOLFSSL* ssl)
         ret = SSL_SUCCESS;
     return ret;
 }
+#else
+int wolfSSL_update_keys(WOLFSSL* ssl)
+{
+    printf("wolfSSL_update_keys requires that wolfSSL be built with TLS 1.3. "
+           "For more information, please go to"
+           "https://wolfssl.com/wolfSSL/Blog/Entries/2017/8/7_wolfSSL_3.12.0_Now_Available.html.\n");
+    return 0;
+}
+#endif /* WOLFSSL_TLS13*/
 
 #if !defined(NO_CERTS) && defined(WOLFSSL_POST_HANDSHAKE_AUTH)
 /* Allow post-handshake authentication in TLS v1.3 connections.
