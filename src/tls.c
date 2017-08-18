@@ -4491,7 +4491,7 @@ static word16 TLSX_Cookie_GetSize(Cookie* cookie, byte msgType)
     if (msgType == client_hello || msgType == hello_retry_request)
         return OPAQUE16_LEN + cookie->len;
 
-    return SANITY_MSG_E;
+    return (word16) SANITY_MSG_E;
 }
 
 /* Writes the Cookie extension into the output buffer.
@@ -4512,7 +4512,7 @@ static word16 TLSX_Cookie_Write(Cookie* cookie, byte* output, byte msgType)
         return OPAQUE16_LEN + cookie->len;
     }
 
-    return SANITY_MSG_E;
+    return (word16) SANITY_MSG_E;
 }
 
 /* Parse the Cookie extension.
@@ -4605,7 +4605,7 @@ int TLSX_Cookie_Use(WOLFSSL* ssl, byte* data, word16 len, byte* mac,
         XMEMCPY(&cookie->data + len, mac, macSz);
 
     extension->data = (void*)cookie;
-    extension->resp = resp;
+    extension->resp = (byte) resp;
 
     return 0;
 }
@@ -5068,7 +5068,12 @@ static void TLSX_KeyShare_FreeAll(KeyShareEntry* list, void* heap)
             }
             else
 #endif
+#ifdef HAVE_ECC
+        /* The definition for wc_ecc_free is wrapped inside of an   *
+         * "ifdef HAVE_ECC", so this just prevents undefined        *
+         * behavior.                                                */
                 wc_ecc_free((ecc_key*)(current->key));
+#endif
         }
         XFREE(current->key, heap, DYNAMIC_TYPE_PRIVATE_KEY);
         XFREE(current->ke, heap, DYNAMIC_TYPE_PUBLIC_KEY);
@@ -5103,10 +5108,13 @@ static word16 TLSX_KeyShare_GetSize(KeyShareEntry* list, byte msgType)
         if (!isRequest && current->key == NULL)
             continue;
 
-        len += OPAQUE16_LEN + OPAQUE16_LEN + current->keLen;
+        len += (int) OPAQUE16_LEN + OPAQUE16_LEN + current->keLen;
     }
 
-    return len;
+    /* Because this function returns word16 type variables, the max. value  *
+     * that can be returned is 65,535 (the largest possible value that a    *
+     * word16 can hold).                                                    */
+    return (word16) len;
 }
 
 /* Writes the key share extension into the output buffer.
@@ -5420,7 +5428,7 @@ static int TLSX_KeyShare_Process(WOLFSSL* ssl, KeyShareEntry* keyShareEntry)
     int ret;
 
 #if defined(HAVE_SESSION_TICKET) || !defined(NO_PSK)
-    ssl->session.namedGroup = keyShareEntry->group;
+    ssl->session.namedGroup = (byte) keyShareEntry->group;
 #endif
     /* Use Key Share Data from server. */
     if (keyShareEntry->group & NAMED_DH_MASK)
@@ -7682,11 +7690,13 @@ int TLSX_PopulateExtensions(WOLFSSL* ssl, byte isServer)
                     return ret;
 
                 ret = TLSX_PreSharedKey_Use(ssl,
-                                          (byte*)ssl->arrays->client_identity,
-                                          XSTRLEN(ssl->arrays->client_identity),
-                                          0, ssl->specs.mac_algorithm,
-                                          cipherSuite0, cipherSuite, 0,
-                                          NULL);
+                        (byte*)ssl->arrays->client_identity,
+                        (word16)XSTRLEN(ssl->arrays->client_identity),
+                        0, ssl->specs.mac_algorithm,
+                        cipherSuite0,
+                        cipherSuite,
+                        0,
+                        NULL);
                 if (ret != 0)
                     return ret;
 
