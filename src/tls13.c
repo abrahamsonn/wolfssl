@@ -6684,6 +6684,7 @@ int wolfSSL_UseKeyShare(WOLFSSL* ssl, word16 group)
  * ssl    The SSL/TLS object.
  * returns 0 on success, otherwise failure.
  */
+#ifdef WOLFSSL_TLS13
 int wolfSSL_NoKeyShares(WOLFSSL* ssl)
 {
     int ret;
@@ -6699,6 +6700,15 @@ int wolfSSL_NoKeyShares(WOLFSSL* ssl)
 
     return SSL_SUCCESS;
 }
+#else
+int wolfSSL_NoKeyShare(WOLFSSL* ssl)
+{
+    printf("wolfSSL_NoKeyShare requires that wolfSSL be "
+           "configured with TLS 1.3. For more information, please go to "
+           "https://wolfssl.com/wolfSSL/Blog/Entries/2017/8/7_wolfSSL_3.12.0_Now_Available.html\n");
+    return 0;
+}
+#endif
 
 /* Do not send a ticket after TLS v1.3 handshake for resumption.
  *
@@ -6821,6 +6831,7 @@ int wolfSSL_update_keys(WOLFSSL* ssl)
  * returns BAD_FUNC_ARG when ctx is NULL, SIDE_ERROR when not a server and
  * 0 on success.
  */
+#ifdef WOLFSSL_TLS13
 int wolfSSL_CTX_allow_post_handshake_auth(WOLFSSL_CTX* ctx)
 {
     if (ctx == NULL || !IsAtLeastTLSv1_3(ctx->method->version))
@@ -6832,6 +6843,15 @@ int wolfSSL_CTX_allow_post_handshake_auth(WOLFSSL_CTX* ctx)
 
     return 0;
 }
+#else
+int wolfSSL_CTX_allow_post_handshake_auth(WOLFSSL* ssl)
+{
+    printf("wolfSSL_CTX_allow_post_handshake_auth requires that wolfSSL be "
+           "configured with TLS 1.3. For more information, please go to "
+           "https://wolfssl.com/wolfSSL/Blog/Entries/2017/8/7_wolfSSL_3.12.0_Now_Available.html\n");
+    return 0;
+}
+#endif /* WOLFSSL_TLS13 */
 
 /* Allow post-handshake authentication in TLS v1.3 connection.
  *
@@ -7189,6 +7209,7 @@ int wolfSSL_set_max_early_data(WOLFSSL* ssl, unsigned int sz)
     return 0;
 }
 
+#ifdef WOLFSSL_TLS13
 /* Write early data to the server.
  *
  * ssl    The SSL/TLS object.
@@ -7231,6 +7252,15 @@ int wolfSSL_write_early_data(WOLFSSL* ssl, const void* data, int sz, int* outSz)
         ret = SSL_FATAL_ERROR;
     return ret;
 }
+#else
+int wolfSSL_update_keys(WOLFSSL* ssl)
+{
+    printf("wolfSSL_write_early_data requires that wolfSSL be built with TLS 1.3. "
+           "For more information, please go to"
+           "https://wolfssl.com/wolfSSL/Blog/Entries/2017/8/7_wolfSSL_3.12.0_Now_Available.html.\n");
+    return 0;
+}
+#endif /* WOLFSSL_TLS13*/
 
 /* Read the any early data from the client.
  *
