@@ -2357,6 +2357,14 @@ static int DecryptKey(const char* password, int passwordSz, byte* salt,
 
             if (version == PKCS5v2 || version == PKCS12v1)
                 desIv = cbcIv;
+
+            ret = wc_Des3Init(&dec, NULL, INVALID_DEVID);
+            if (ret != 0) {
+#ifdef WOLFSSL_SMALL_STACK
+                XFREE(key, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+#endif
+                return ret;
+            }
             ret = wc_Des3_SetKey(&dec, key, desIv, DES_DECRYPTION);
             if (ret != 0) {
 #ifdef WOLFSSL_SMALL_STACK
@@ -2895,6 +2903,10 @@ int DsaPublicKeyDecode(const byte* input, word32* inOutIdx, DsaKey* key,
 {
     int    length;
 
+    if (input == NULL || inOutIdx == NULL || key == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
     if (GetSequence(input, inOutIdx, &length, inSz) < 0)
         return ASN_PARSE_E;
 
@@ -2913,6 +2925,11 @@ int DsaPrivateKeyDecode(const byte* input, word32* inOutIdx, DsaKey* key,
                         word32 inSz)
 {
     int    length, version;
+
+    /* Sanity checks on input */
+    if (input == NULL || inOutIdx == NULL || key == NULL) {
+        return BAD_FUNC_ARG;
+    }
 
     if (GetSequence(input, inOutIdx, &length, inSz) < 0)
         return ASN_PARSE_E;
@@ -4649,11 +4666,11 @@ static int ConfirmSignature(SignatureCtx* sigCtx,
             sigCtx->state = SIG_STATE_DO;
 
         #ifdef WOLFSSL_ASYNC_CRYPT
-            if (sigCtx->devId != INVALID_DEVID) {
-                /* always return here, so we can properly init the async
-                   context back in SSL world */
-                ret = WC_PENDING_E;
-                goto exit_cs;
+            if (sigCtx->devId != INVALID_DEVID && sigCtx->asyncDev && sigCtx->asyncCtx) {
+                /* make sure event is intialized */
+                WOLF_EVENT* event = &sigCtx->asyncDev->event;
+                ret = wolfAsync_EventInit(event, WOLF_EVENT_TYPE_ASYNC_WOLFSSL,
+                    sigCtx->asyncCtx, WC_ASYNC_FLAG_CALL_AGAIN);
             }
         #endif
         } /* SIG_STATE_KEY */
