@@ -15542,7 +15542,7 @@ const char* const* GetCipherNames(void)
 /* returns the size of the cipher_names array */
 int GetCipherNamesSize(void)
 {
-    return (int)(sizeof(cipher_names) / sizeof(char*));
+    return (int) (sizeof(cipher_names) / sizeof(char*));
 }
 
 /* gets cipher name in the format DHE-RSA-... rather then TLS_DHE... */
@@ -18727,22 +18727,24 @@ int SendClientKeyExchange(WOLFSSL* ssl)
             #endif /* HAVE_PK_CALLBACKS */
 
                 #ifdef HAVE_CURVE25519
-                    if (ssl->peerX25519KeyPresent) {
-                        if (!ssl->peerX25519Key || !ssl->peerX25519Key->dp) {
-                            ERROR_OUT(NO_PEER_KEY, exit_scke);
-                        }
+                    #if !defined(NO_DH) || defined(HAVE_ECC)
+                        if (ssl->peerX25519KeyPresent) {
+                            if (!ssl->peerX25519Key || !ssl->peerX25519Key->dp) {
+                                ERROR_OUT(NO_PEER_KEY, exit_scke);
+                            }
 
-                        /* create private key */
-                        ssl->hsType = DYNAMIC_TYPE_CURVE25519;
-                        ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
-                        if (ret != 0) {
-                            goto exit_scke;
-                        }
+                            /* create private key */
+                            ssl->hsType = DYNAMIC_TYPE_CURVE25519;
+                            ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
+                            if (ret != 0) {
+                                goto exit_scke;
+                            }
 
-                        ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
-                                            ssl->peerX25519Key);
-                        break;
-                    }
+                            ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
+                                                ssl->peerX25519Key);
+                            break;
+                        }
+                    #endif
                 #endif
                 #ifdef HAVE_ECC
                     if (ssl->specs.static_ecdh) {
@@ -19211,21 +19213,23 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                 #endif
 
                 #ifdef HAVE_CURVE25519
-                    if (ssl->peerX25519KeyPresent) {
-                        ret = X25519SharedSecret(ssl,
-                            (curve25519_key*)ssl->hsKey, ssl->peerX25519Key,
-                            args->encSecret + OPAQUE8_LEN, &args->encSz,
-                            ssl->arrays->preMasterSecret,
-                            &ssl->arrays->preMasterSz,
-                            WOLFSSL_CLIENT_END,
-                        #ifdef HAVE_PK_CALLBACKS
-                            ssl->EccSharedSecretCtx
-                        #else
-                            NULL
-                        #endif
-                        );
-                        break;
-                    }
+                    #if !defined(NO_DH) || defined(HAVE_ECC)
+                        if (ssl->peerX25519KeyPresent) {
+                            ret = X25519SharedSecret(ssl,
+                                (curve25519_key*)ssl->hsKey, ssl->peerX25519Key,
+                                args->encSecret + OPAQUE8_LEN, &args->encSz,
+                                ssl->arrays->preMasterSecret,
+                                &ssl->arrays->preMasterSz,
+                                WOLFSSL_CLIENT_END,
+                            #ifdef HAVE_PK_CALLBACKS
+                                ssl->EccSharedSecretCtx
+                            #else
+                                NULL
+                            #endif
+                            );
+                            break;
+                        }
+                    #endif
                 #endif
                 #ifdef HAVE_ECC
                     peerKey = (ssl->specs.static_ecdh) ?
