@@ -19830,17 +19830,21 @@ int SendCertificateVerify(WOLFSSL* ssl)
             }
         #endif
 
-    #ifndef NO_OLD_TLS
-        #ifndef NO_SHA
-            /* old tls default */
-            SetDigest(ssl, sha_mac);
+        #if !defined(NO_DH) || !defined(NO_RSA) || defined(HAVE_ECC)
+            /* !defined(NO_DH) || !defined(NO_RSA) || defined(HAVE_ECC) *
+             * ensures that SetDigest will remain defined.              */
+            #ifndef NO_OLD_TLS
+                #ifndef NO_SHA
+                    /* old tls default */
+                    SetDigest(ssl, sha_mac);
+                #endif
+            #else
+                #ifndef NO_SHA256
+                    /* new tls default */
+                    SetDigest(ssl, sha256_mac);
+                #endif
+            #endif /* !NO_OLD_TLS */
         #endif
-    #else
-        #ifndef NO_SHA256
-            /* new tls default */
-            SetDigest(ssl, sha256_mac);
-        #endif
-    #endif /* !NO_OLD_TLS */
 
             if (ssl->hsType == DYNAMIC_TYPE_RSA) {
         #ifdef WC_RSA_PSS
