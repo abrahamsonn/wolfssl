@@ -20739,14 +20739,17 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                                 }
                             }
 
-                            if (ssl->eccTempKeyPresent == 0) {
-                                ret = X25519MakeKey(ssl,
-                                        (curve25519_key*)ssl->eccTempKey, NULL);
-                                if (ret == 0 || ret == WC_PENDING_E) {
-                                    ssl->eccTempKeyPresent = 1;
+                            #if !defined(NO_DH) || defined(HAVE_ECC)
+                                if (ssl->eccTempKeyPresent == 0) {
+                                    ret = X25519MakeKey(ssl,
+                                            (curve25519_key*)ssl->eccTempKey,
+                                            NULL);
+                                    if (ret == 0 || ret == WC_PENDING_E) {
+                                        ssl->eccTempKeyPresent = 1;
+                                    }
                                 }
-                            }
-                            break;
+                                break;
+                            #endif
                         }
                     #endif
                     #ifdef HAVE_ECC
@@ -24254,22 +24257,24 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                         void* private_key = ssl->eccTempKey;
 
                     #ifdef HAVE_CURVE25519
-                        if (ssl->ecdhCurveOID == ECC_X25519_OID) {
-                            ret = X25519SharedSecret(ssl,
-                                (curve25519_key*)private_key,
-                                ssl->peerX25519Key,
-                                input + args->idx, &args->length,
-                                ssl->arrays->preMasterSecret,
-                                &ssl->arrays->preMasterSz,
-                                WOLFSSL_SERVER_END,
-                            #ifdef HAVE_PK_CALLBACKS
-                                ssl->EccSharedSecretCtx
-                            #else
-                                NULL
-                            #endif
-                            );
-                            break;
-                        }
+                        #if !defined(NO_DH) || defined(HAVE_ECC)
+                            if (ssl->ecdhCurveOID == ECC_X25519_OID) {
+                                ret = X25519SharedSecret(ssl,
+                                    (curve25519_key*)private_key,
+                                    ssl->peerX25519Key,
+                                    input + args->idx, &args->length,
+                                    ssl->arrays->preMasterSecret,
+                                    &ssl->arrays->preMasterSz,
+                                    WOLFSSL_SERVER_END,
+                                #ifdef HAVE_PK_CALLBACKS
+                                    ssl->EccSharedSecretCtx
+                                #else
+                                    NULL
+                                #endif
+                                );
+                                break;
+                            }
+                        #endif
                     #endif
                     #ifdef HAVE_ECC
                         if (ssl->specs.static_ecdh) {
