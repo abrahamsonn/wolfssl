@@ -19880,12 +19880,14 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 ssl->buffers.sig.length = FINISHED_SZ;
                 args->sigSz = ENCRYPT_LEN;
 
-                if (IsAtLeastTLSv1_2(ssl)) {
-                    ssl->buffers.sig.length = wc_EncodeSignature(
-                            ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
-                            ssl->buffers.digest.length,
-                            TypeHash(ssl->suites->hashAlgo));
-                }
+                #if !defined(NO_DH) || defined(HAVE_ECC)
+                    if (IsAtLeastTLSv1_2(ssl)) {
+                        ssl->buffers.sig.length = wc_EncodeSignature(
+                                ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
+                                ssl->buffers.digest.length,
+                                TypeHash(ssl->suites->hashAlgo));
+                    }
+                #endif
 
                 /* prepend hdr */
                 c16toa(args->length, args->verify + args->extraSz);
