@@ -19864,8 +19864,10 @@ int SendCertificateVerify(WOLFSSL* ssl)
             #endif
         #else
             #ifndef NO_SHA256
-                /* new tls default */
-                SetDigest(ssl, sha256_mac);
+                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
+                    /* new tls default */
+                    SetDigest(ssl, sha256_mac);
+                #endif
             #endif
         #endif /* !NO_OLD_TLS */
 
