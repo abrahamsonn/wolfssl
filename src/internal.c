@@ -19832,14 +19832,14 @@ int SendCertificateVerify(WOLFSSL* ssl)
 
         #ifndef NO_OLD_TLS
             #ifndef NO_SHA
-                #if !defined(NO_DH) || !defined(NO_RSA) || defined(HAVE_ECC)
+                #if !defined(NO_RSA) || defined(HAVE_ECC)
                     /* old tls default */
                     SetDigest(ssl, sha_mac);
                 #endif
             #endif
         #else
             #ifndef NO_SHA256
-                #if !defined(NO_DH) || !defined(NO_RSA) || defined(HAVE_ECC)
+                #if !defined(NO_RSA) || defined(HAVE_ECC)
                     /* new tls default */
                     SetDigest(ssl, sha256_mac);
                 #endif
@@ -19862,8 +19862,10 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 args->sigAlgo = ed25519_sa_algo;
 
             if (IsAtLeastTLSv1_2(ssl)) {
+        #if !defined(NO_RSA) || defined(HAVE_ECC)
                 EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
                              args->verify);
+        #endif
                 args->extraSz = HASH_SIG_SIZE;
                 SetDigest(ssl, ssl->suites->hashAlgo);
             }
@@ -23108,7 +23110,9 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
+                        #ifndef NO_RSA
                                 TypeHash(args->hashAlgo));
+                        #endif
 
                             if (args->sendSz != args->sigSz || !args->output ||
                                 XMEMCMP(args->output, encodedSig,
