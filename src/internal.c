@@ -15076,8 +15076,7 @@ static const char* const cipher_names[] =
 #if defined(NO_DH) && !defined(HAVE_ECC) && !defined(WOLFSSL_STATIC_RSA) \
               && !defined(WOLFSSL_STATIC_DH) && !defined(WOLFSSL_STATIC_PSK)
 static int x = 0;
-static int* cipher_name_idx;
-cipher_name_idx = &x;
+static int* cipher_name_idx = &x;
 #else
 /* cipher suite number that matches above name table */
 static int cipher_name_idx[] =
