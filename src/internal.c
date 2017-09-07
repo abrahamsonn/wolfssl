@@ -15067,10 +15067,17 @@ static const char* const cipher_names[] =
 
 #endif /* defined(NO_DH) && !defined(HAVE_ECC) &&                           *
         * !defined(WOLFSSL_STATIC_RSA) && !defined(WOLFSSL_STATIC_DH) &&    *
-        * !defined(WOLFSSL_STATIC_PSK)                                      */
+        * !defined(WOLFSSL_STATIC_PSK)                                      *
+        * (taken from top of the README, this combination of macros is what *
+        * can cause "static const char* cipher_names[] = { };")             */
 };
 
 
+#if defined(NO_DH) && !defined(HAVE_ECC) && !defined(WOLFSSL_STATIC_RSA) \
+              && !defined(WOLFSSL_STATIC_DH) && !defined(WOLFSSL_STATIC_PSK)
+static int* cipher_name_idx;
+*cipher_name_idx = 0;
+#else
 /* cipher suite number that matches above name table */
 static int cipher_name_idx[] =
 {
@@ -15539,6 +15546,11 @@ static int cipher_name_idx[] =
 #endif
 
 };
+#endif /* defined(NO_DH) && !defined(HAVE_ECC) &&                           *
+        * !defined(WOLFSSL_STATIC_RSA) && !defined(WOLFSSL_STATIC_DH) &&    *
+        * !defined(WOLFSSL_STATIC_PSK)                                      *
+        * (taken from top of the README, this combination of macros is what *
+        * can cause "static int cipher_name_idx[] = { }")                  */
 
 
 /* returns the cipher_names array */
