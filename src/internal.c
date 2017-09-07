@@ -15065,7 +15065,6 @@ static const char* const cipher_names[] =
 /* cipher suite number that matches above name table */
 static int cipher_name_idx[] =
 {
-
 #ifdef BUILD_SSL_RSA_WITH_RC4_128_SHA
     SSL_RSA_WITH_RC4_128_SHA,
 #endif
@@ -15529,6 +15528,7 @@ static int cipher_name_idx[] =
 #ifdef BUILD_WDM_WITH_NULL_SHA256
     WDM_WITH_NULL_SHA256,
 #endif
+
 };
 
 
@@ -19839,10 +19839,8 @@ int SendCertificateVerify(WOLFSSL* ssl)
             #endif
         #else
             #ifndef NO_SHA256
-                #if !defined(NO_RSA) || defined(HAVE_ECC)
-                    /* new tls default */
-                    SetDigest(ssl, sha256_mac);
-                #endif
+                /* new tls default */
+                SetDigest(ssl, sha256_mac);
             #endif
         #endif /* !NO_OLD_TLS */
 
@@ -19862,10 +19860,8 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 args->sigAlgo = ed25519_sa_algo;
 
             if (IsAtLeastTLSv1_2(ssl)) {
-        #if !defined(NO_RSA) || defined(HAVE_ECC)
                 EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
                              args->verify);
-        #endif
                 args->extraSz = HASH_SIG_SIZE;
                 SetDigest(ssl, ssl->suites->hashAlgo);
             }
@@ -23110,9 +23106,7 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
-                        #ifndef NO_RSA
                                 TypeHash(args->hashAlgo));
-                        #endif
 
                             if (args->sendSz != args->sigSz || !args->output ||
                                 XMEMCMP(args->output, encodedSig,
