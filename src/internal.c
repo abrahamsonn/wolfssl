@@ -17240,6 +17240,10 @@ static int DoServerKeyExchange(WOLFSSL* ssl, const byte* input,
                                word32* inOutIdx, word32 size)
 {
     int ret = 0;
+    /* input & size can be passed without being used due to preprocessor    *
+     * macros - they're voided to remove warnings.                          */
+    (void)input;
+    (void)size;
 #ifdef WOLFSSL_ASYNC_CRYPT
     DskeArgs* args = (DskeArgs*)ssl->async.args;
     typedef char args_test[sizeof(ssl->async.args) >= sizeof(*args) ? 1 : -1];
