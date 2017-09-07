@@ -15076,7 +15076,8 @@ static const char* const cipher_names[] =
 #if defined(NO_DH) && !defined(HAVE_ECC) && !defined(WOLFSSL_STATIC_RSA) \
               && !defined(WOLFSSL_STATIC_DH) && !defined(WOLFSSL_STATIC_PSK)
 static int x = 0;
-static int* cipher_name_idx = &x;
+static int* cipher_name_idx;
+cipher_name_idx = &x;
 #else
 /* cipher suite number that matches above name table */
 static int cipher_name_idx[] =
@@ -19857,7 +19858,7 @@ int SendCertificateVerify(WOLFSSL* ssl)
 
         #ifndef NO_OLD_TLS
             #ifndef NO_SHA
-                #if !defined(NO_RSA) || defined(HAVE_ECC)
+                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
                     /* old tls default */
                     SetDigest(ssl, sha_mac);
                 #endif
@@ -19885,8 +19886,10 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 args->sigAlgo = ed25519_sa_algo;
 
             if (IsAtLeastTLSv1_2(ssl)) {
+        #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
                 EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
                              args->verify);
+        #endif
                 args->extraSz = HASH_SIG_SIZE;
                 SetDigest(ssl, ssl->suites->hashAlgo);
             }
@@ -23131,7 +23134,10 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
+                        #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
+                           && !defined(NO_RSA)
                                 TypeHash(args->hashAlgo));
+                        #endif
 
                             if (args->sendSz != args->sigSz || !args->output ||
                                 XMEMCMP(args->output, encodedSig,
@@ -24277,7 +24283,10 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                 #if defined(HAVE_ECC) || defined(HAVE_CURVE25519)
                     case ecc_diffie_hellman_kea:
                     {
+                        /* private_key may not end up being used based off  *
+                         * of preprocessor macros                           */
                         void* private_key = ssl->eccTempKey;
+                        (void)private_key;
 
                     #ifdef HAVE_CURVE25519
                         #if !defined(NO_DH) || defined(HAVE_ECC)
