@@ -482,8 +482,8 @@ void fe_tobytes(unsigned char *s,const fe h)
   Goal: Output h0+...+2^230 h9.
   */
 
-  s[0] = h0 >> 0;
-  s[1] = h0 >> 8;
+  s[0] = (unsigned char) (h0 >> 0);
+  s[1] = h0 >> 8; 
   s[2] = h0 >> 16;
   s[3] = (h0 >> 24) | (h1 << 2);
   s[4] = h1 >> 6;
