@@ -14596,6 +14596,11 @@ void SetErrorString(int error, char* str)
 /* be sure to add to cipher_name_idx too !!!! */
 static const char* const cipher_names[] =
 {
+#if defined(NO_DH) && !defined(HAVE_ECC) && !defined(WOLFSSL_STATIC_RSA) \
+              && !defined(WOLFSSL_STATIC_DH) && !defined(WOLFSSL_STATIC_PSK)
+"",
+#else
+
 #ifdef BUILD_SSL_RSA_WITH_RC4_128_SHA
     "RC4-SHA",
 #endif
@@ -15059,6 +15064,10 @@ static const char* const cipher_names[] =
 #ifdef BUILD_WDM_WITH_NULL_SHA256
     "WDM-NULL-SHA256",
 #endif
+
+#endif /* defined(NO_DH) && !defined(HAVE_ECC) &&                           *
+        * !defined(WOLFSSL_STATIC_RSA) && !defined(WOLFSSL_STATIC_DH) &&    *
+        * !defined(WOLFSSL_STATIC_PSK)                                      */
 };
 
 
