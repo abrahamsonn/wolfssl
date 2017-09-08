@@ -23132,13 +23132,15 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                                 WOLFSSL_MSG("Oops, peer sent RSA key but not in verify");
                             }
 
+                        #if !defined(NO_DH) || defined(HAVE_ECC)
                             SetDigest(ssl, args->hashAlgo);
+                        #endif
 
+                        #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
+                           && !defined(NO_RSA)
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
-                        #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
-                           && !defined(NO_RSA)
                                 TypeHash(args->hashAlgo));
                         #endif
 
