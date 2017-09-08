@@ -19892,7 +19892,9 @@ int SendCertificateVerify(WOLFSSL* ssl)
                              args->verify);
         #endif
                 args->extraSz = HASH_SIG_SIZE;
+            #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
                 SetDigest(ssl, ssl->suites->hashAlgo);
+            #endif
             }
         #ifndef NO_OLD_TLS
             else {
