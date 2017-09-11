@@ -247,10 +247,6 @@ void WOLFSSL_ERROR(int error)
     if (loggingEnabled && error != WC_PENDING_E)
     #endif
     {
-        #ifdef _WIN32
-        #define _CRT_SECURE_NO_WARNINGS
-        #endif
-
         char buffer[80];
         #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
             (void)usrCtx; /* a user ctx for future flexibility */
@@ -274,10 +270,6 @@ void WOLFSSL_ERROR(int error)
             }
         #else
             sprintf(buffer, "wolfSSL error occurred, error = %d", error);
-        #endif
-
-        #ifdef _WIN32
-        #undef _CRT_SECURE_NO_WARNINGS
         #endif
 
         #ifdef DEBUG_WOLFSSL
