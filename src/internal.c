@@ -8257,7 +8257,7 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
 
                     #ifdef WOLFSSL_NGINX
                         if (args->certIdx > args->untrustedDepth)
-                            args->untrustedDepth = args->certIdx + 1;
+                            args->untrustedDepth = (char) args->certIdx + 1;
                     #endif
 
                         /* already verified above */
@@ -13319,8 +13319,8 @@ int SendCertificateRequest(WOLFSSL* ssl)
     while (names != NULL) {
         byte seq[MAX_SEQ_SZ];
 
-        c16toa(names->data.name->rawLen +
-               SetSequence(names->data.name->rawLen, seq), &output[i]);
+        c16toa((word16) (names->data.name->rawLen +
+               SetSequence(names->data.name->rawLen, seq)), &output[i]);
         i += OPAQUE16_LEN;
         i += SetSequence(names->data.name->rawLen, output + i);
         XMEMCPY(output + i, names->data.name->raw, names->data.name->rawLen);
@@ -20198,7 +20198,7 @@ int SetTicket(WOLFSSL* ssl, const byte* ticket, word32 length)
         ssl->session.ticket = sessionTicket;
         ssl->session.isDynamic = 1;
     }
-    ssl->session.ticketLen = length;
+    ssl->session.ticketLen = (word16) length;
 
     if (length > 0) {
         XMEMCPY(ssl->session.ticket, ticket, length);
