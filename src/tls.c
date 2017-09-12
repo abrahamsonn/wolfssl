@@ -1657,7 +1657,7 @@ static int TLSX_SNI_Parse(WOLFSSL* ssl, byte* input, word16 length,
                         matchStat = WOLFSSL_SNI_FAKE_MATCH;
                     }
 
-                    TLSX_SNI_SetStatus(ssl->extensions, type, matchStat);
+                    TLSX_SNI_SetStatus(ssl->extensions, type, (byte) matchStat);
 
                     if(!cacheOnly)
                         TLSX_SetResponse(ssl, TLSX_SERVER_NAME);

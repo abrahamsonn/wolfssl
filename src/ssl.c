@@ -17244,11 +17244,11 @@ int wolfSSL_i2d_SSL_SESSION(WOLFSSL_SESSION* sess, unsigned char** p)
         XMEMCPY(data + idx, sess->sessionID, sess->sessionIDSz);
         idx += sess->sessionIDSz;
         XMEMCPY(data + idx, sess->masterSecret, SECRET_LEN); idx += SECRET_LEN;
-        data[idx++] = sess->haveEMS;
+        data[idx++] = (unsigned char) sess->haveEMS;
 #ifdef SESSION_CERTS
-        data[idx++] = sess->chain.count;
+        data[idx++] = (unsigned char) sess->chain.count;
         for (i = 0; i < sess->chain.count; i++) {
-            c16toa(sess->chain.certs[i].length, data + idx);
+            c16toa((word16) sess->chain.certs[i].length, data + idx);
             idx += OPAQUE16_LEN;
             XMEMCPY(data + idx, sess->chain.certs[i].buffer,
                     sess->chain.certs[i].length);
@@ -23095,7 +23095,7 @@ void* wolfSSL_GetRsaDecCtx(WOLFSSL* ssl)
         (void)depth;
         WOLFSSL_STUB("wolfSSL_set_verify_depth");
 #else
-        ssl->options.verifyDepth = depth;
+        ssl->options.verifyDepth = (byte) depth;
 #endif
     }
 

@@ -3859,7 +3859,7 @@ int GetTimeString(byte* date, int format, char* buf, int len)
     struct tm t;
     int idx = 0;
 
-    if (!ExtractDate(date, format, &t, &idx)) {
+    if (!ExtractDate(date, (unsigned char) format, &t, &idx)) {
         return 0;
     }
 
