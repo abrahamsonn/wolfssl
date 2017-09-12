@@ -51,13 +51,11 @@
 #ifdef HAVE_QSH
     static int TLSX_AddQSHKey(QSHKey** list, QSHKey* key);
     static byte* TLSX_QSHKeyFind_Pub(QSHKey* qsh, word16* pubLen, word16 name);
-#endif
-#if defined(HAVE_NTRU) || defined(HAVE_QSH)
+#if defined(HAVE_NTRU)
     static int TLSX_CreateNtruKey(WOLFSSL* ssl, int type);
 #endif
-#ifndef HAVE_FIPS
-    #include <wolfssl/wolfcrypt/sha512.h>
-#endif
+#endif /* HAVE_QSH */
+
 
 #ifndef NO_TLS
 
@@ -3710,12 +3708,12 @@ int TLSX_UseSessionTicket(TLSX** extensions, SessionTicket* ticket, void* heap)
 /* Quantum-Safe-Hybrid                                                        */
 /******************************************************************************/
 
+#ifdef HAVE_QSH
 #if defined(HAVE_NTRU)
 static WC_RNG* gRng;
 static wolfSSL_Mutex* gRngMutex;
 #endif
 
-#ifdef HAVE_QSH
 static void TLSX_QSH_FreeAll(QSHScheme* list, void* heap)
 {
     QSHScheme* current;
@@ -4314,7 +4312,7 @@ int TLSX_UseQSHScheme(TLSX** extensions, word16 name, byte* pKey, word16 pkeySz,
  */
 static word16 TLSX_SupportedVersions_GetSize(void* data)
 {
-    (void) data;
+    (void)data;
 
     /* TLS v1.2 and TLS v1.3  */
     int cnt = 2;
@@ -5111,9 +5109,6 @@ static word16 TLSX_KeyShare_GetSize(KeyShareEntry* list, byte msgType)
         len += (int) OPAQUE16_LEN + OPAQUE16_LEN + current->keLen;
     }
 
-    /* Because this function returns word16 type variables, the max. value  *
-     * that can be returned is 65,535 (the largest possible value that a    *
-     * word16 can hold).                                                    */
     return (word16) len;
 }
 
@@ -7177,7 +7172,7 @@ static word16 TLSX_Write(TLSX* list, byte* output, byte* semaphore,
 }
 
 
-#ifdef HAVE_NTRU
+#if defined(HAVE_NTRU) && defined(HAVE_QSH)
 
 static word32 GetEntropy(unsigned char* out, word32 num_bytes)
 {
@@ -7264,11 +7259,10 @@ static int TLSX_AddQSHKey(QSHKey** list, QSHKey* key)
 }
 
 
-#if defined(HAVE_NTRU) || defined(HAVE_QSH)
+#if defined(HAVE_NTRU)
 int TLSX_CreateNtruKey(WOLFSSL* ssl, int type)
 {
     int ret = -1;
-#ifdef HAVE_NTRU
     int ntruType;
 
     /* variable declarations for NTRU*/
@@ -7331,7 +7325,6 @@ int TLSX_CreateNtruKey(WOLFSSL* ssl, int type)
     temp->next = NULL;
 
     TLSX_AddQSHKey(&ssl->QSH_Key, temp);
-#endif
 
     (void)ssl;
     (void)type;
