@@ -98,9 +98,6 @@ WOLFSSL_API int wolfSSL_SetLoggingCb(wolfSSL_Logging_cb log_function);
             const char* file, void* ctx);
     #define WOLFSSL_ERROR(x) WOLFSSL_ERROR_LINE((x), __func__, __LINE__, __FILE__,NULL)
     #else
-        #ifdef _WIN32
-        #define _CRT_SECURE_NO_WARNINGS
-        #endif
     void WOLFSSL_ERROR(int);
     #endif
 #else
