@@ -248,6 +248,9 @@ void WOLFSSL_ERROR(int error)
     #endif
     {
         char buffer[80];
+
+        #define _CRT_SECURE_NO_WARNINGS
+
         #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
             (void)usrCtx; /* a user ctx for future flexibility */
             (void)func;
@@ -271,6 +274,8 @@ void WOLFSSL_ERROR(int error)
         #else
             sprintf(buffer, "wolfSSL error occurred, error = %d", error);
         #endif
+
+        #undef _CRT_SECURE_NO_WARNINGS
 
         #ifdef DEBUG_WOLFSSL
         wolfssl_log(ERROR_LOG , buffer);

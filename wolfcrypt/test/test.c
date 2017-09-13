@@ -11949,7 +11949,7 @@ int ecc_encrypt_test(void)
 
     /* msg2 (response) from B to A */
     for (i = 0; i < (int)sizeof(msg2); i++)
-        msg2[i] = i + sizeof(msg2);
+        msg2[i] = (byte) (i + sizeof(msg2));
 
     /* get encrypted msg (response) to send to B */
     ret = wc_ecc_encrypt(&userB, &userA, msg2, sizeof(msg2), out2,

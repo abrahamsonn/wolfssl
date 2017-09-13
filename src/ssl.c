@@ -17582,7 +17582,7 @@ int wolfSSL_cmp_peer_cert_to_file(WOLFSSL* ssl, const char *fname)
             if ((myBuffer != NULL) &&
                 (sz > 0) &&
                 (XFREAD(myBuffer, 1, sz, file) == sz) &&
-                (PemToDer(myBuffer, sz, CERT_TYPE,
+                (PemToDer(myBuffer, (long) sz, CERT_TYPE,
                           &fileDer, ctx->heap, info, &eccKey) == 0) &&
                 (fileDer->length != 0) &&
                 (fileDer->length == peer_cert->derCert->length) &&
