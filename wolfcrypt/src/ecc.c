@@ -6308,7 +6308,12 @@ static int build_lut(int idx, mp_int* a, mp_int* modulus, mp_digit mp,
      return MP_OKAY;
 
    /* err cleanup */
+#ifndef _WIN64
    for (y = 0; y < (1U<<FP_LUT); y++) {
+#else /* If compiling on a 64-bit windows machine, VS will freak out unless *
+       * the shift is performed with 1i64 here.                             */
+   for (y = 0; y < (1i64<<FP_LUT); y++) {
+#endif
       wc_ecc_del_point(fp_cache[idx].LUT[y]);
       fp_cache[idx].LUT[y] = NULL;
    }
