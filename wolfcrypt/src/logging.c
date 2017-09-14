@@ -253,8 +253,8 @@ void WOLFSSL_ERROR(int error)
          * of sprintf - even though the largest possible value concatenated *
          * to the buffer won't cause an overflow                            */
         #ifdef _WIN32
-        #pragma warning ( push )
-        #pragma ( disable : 4996 )
+        #pragma warning( push )
+        #pragma warning( disable : 4996 )
         #endif
 
         #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
@@ -282,7 +282,7 @@ void WOLFSSL_ERROR(int error)
         #endif
 
         #ifdef _WIN32
-        #pragma warning ( pop )
+        #pragma warning( pop )
         #endif
 
         #ifdef DEBUG_WOLFSSL
