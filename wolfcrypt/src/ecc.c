@@ -6806,7 +6806,7 @@ int ecc_mul2add(ecc_point* A, mp_int* kA,
 
               #ifdef _WIN32
               #pragma warning( push )
-              #pragma( disable : 4701 )
+              #pragma warning( disable : 4701 )
               #endif
 
               err = build_lut(idx2, a, modulus, mp, &mu);
@@ -6908,7 +6908,7 @@ int wc_ecc_mulmod_ex(mp_int* k, ecc_point *G, ecc_point *R, mp_int* a,
 
              #ifdef _WIN32
              #pragma warning( push )
-             #pragma( disable : 4701 )
+             #pragma warning( disable : 4701 )
              #endif
 
              err = build_lut(idx, a, modulus, mp, &mu);
