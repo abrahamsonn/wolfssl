@@ -249,7 +249,13 @@ void WOLFSSL_ERROR(int error)
     {
         char buffer[80];
 
-        #define _CRT_SECURE_NO_WARNINGS
+        /* This following ifdef prevents VS from freaking out about usage   *
+         * of sprintf - even though the largest possible value concatenated *
+         * to the buffer won't cause an overflow                            */
+        #ifdef _WIN32
+        #pragma warning ( push )
+        #pragma ( disable : 4996 )
+        #endif
 
         #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
             (void)usrCtx; /* a user ctx for future flexibility */
@@ -275,7 +281,9 @@ void WOLFSSL_ERROR(int error)
             sprintf(buffer, "wolfSSL error occurred, error = %d", error);
         #endif
 
-        #undef _CRT_SECURE_NO_WARNINGS
+        #ifdef _WIN32
+        #pragma warning ( pop )
+        #endif
 
         #ifdef DEBUG_WOLFSSL
         wolfssl_log(ERROR_LOG , buffer);

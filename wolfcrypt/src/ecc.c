@@ -6801,7 +6801,19 @@ int ecc_mul2add(ecc_point* A, mp_int* kA,
 
             if (err == MP_OKAY)
             /* build the LUT */
+            /* VS can't understand how mp is initialized and thinks it just *
+             * never happens, this pragma prevents VS from freaking out     */
+
+              #ifdef _WIN32
+              #pragma warning ( push )
+              #pragma ( disable : 4701 )
+              #endif
+
               err = build_lut(idx2, a, modulus, mp, &mu);
+
+              #ifdef _WIN32
+              #pragma warning ( pop )
+              #endif
         }
       }
 
@@ -6891,7 +6903,19 @@ int wc_ecc_mulmod_ex(mp_int* k, ecc_point *G, ecc_point *R, mp_int* a,
 
            if (err == MP_OKAY)
              /* build the LUT */
+             /* VS can't understand how mp is initialized and thinks it just *
+              * never happens, this pragma prevents VS from freaking out     */
+
+             #ifdef _WIN32
+             #pragma warning ( push )
+             #pragma ( disable : 4701 )
+             #endif
+
              err = build_lut(idx, a, modulus, mp, &mu);
+
+             #ifdef _WIN32
+             #pragma warning ( pop )
+             #endif
         }
       }
 
