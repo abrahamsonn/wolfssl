@@ -6197,7 +6197,7 @@ static int build_lut(int idx, mp_int* a, mp_int* modulus, mp_digit mp,
 
    /* sanity check to make sure lut_order table is of correct size,
       should compile out to a NOP if true */
-   if ((sizeof(lut_orders) / sizeof(lut_orders[0])) < (1U<<FP_LUT)) {
+   if ( (sizeof(lut_orders) / sizeof(lut_orders[0])) < (1U<<FP_LUT) ) {
        err = BAD_FUNC_ARG;
    }
    else {
@@ -6308,7 +6308,8 @@ static int build_lut(int idx, mp_int* a, mp_int* modulus, mp_digit mp,
      return MP_OKAY;
 
    /* err cleanup */
-   for (y = 0; y < (1U<<FP_LUT); y++) {
+   int max = 1U<<FP_LUT; /* (max = 1 x 2^8) */
+   for (y = 0; y < max; y++) {
       wc_ecc_del_point(fp_cache[idx].LUT[y]);
       fp_cache[idx].LUT[y] = NULL;
    }
