@@ -6308,8 +6308,7 @@ static int build_lut(int idx, mp_int* a, mp_int* modulus, mp_digit mp,
      return MP_OKAY;
 
    /* err cleanup */
-   int max = (1U<<FP_LUT); /* (max = 1 x 2^8) */
-   for (y = 0; y < max; y++) {
+   for (y = 0; y < (unsigned) (1U<<FP_LUT); y++) {
       wc_ecc_del_point(fp_cache[idx].LUT[y]);
       fp_cache[idx].LUT[y] = NULL;
    }
