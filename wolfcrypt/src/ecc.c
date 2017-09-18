@@ -6197,7 +6197,7 @@ static int build_lut(int idx, mp_int* a, mp_int* modulus, mp_digit mp,
 
    /* sanity check to make sure lut_order table is of correct size,
       should compile out to a NOP if true */
-   if ( (sizeof(lut_orders) / sizeof(lut_orders[0])) < (1U<<FP_LUT) ) {
+   if ((sizeof(lut_orders) / sizeof(lut_orders[0])) < (1U<<FP_LUT)) {
        err = BAD_FUNC_ARG;
    }
    else {
@@ -6801,19 +6801,7 @@ int ecc_mul2add(ecc_point* A, mp_int* kA,
 
             if (err == MP_OKAY)
             /* build the LUT */
-            /* VS can't understand how mp is initialized and thinks it just *
-             * never happens, this pragma prevents VS from freaking out     */
-
-              #ifdef _WIN32
-              #pragma warning( push )
-              #pragma warning( disable : 4701 )
-              #endif
-
               err = build_lut(idx2, a, modulus, mp, &mu);
-
-              #ifdef _WIN32
-              #pragma warning( pop )
-              #endif
         }
       }
 
@@ -6903,19 +6891,7 @@ int wc_ecc_mulmod_ex(mp_int* k, ecc_point *G, ecc_point *R, mp_int* a,
 
            if (err == MP_OKAY)
              /* build the LUT */
-             /* VS can't understand how mp is initialized and thinks it just *
-              * never happens, this pragma prevents VS from freaking out     */
-
-             #ifdef _WIN32
-             #pragma warning( push )
-             #pragma warning( disable : 4701 )
-             #endif
-
              err = build_lut(idx, a, modulus, mp, &mu);
-
-             #ifdef _WIN32
-             #pragma warning( pop )
-             #endif
         }
       }
 
