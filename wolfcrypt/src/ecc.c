@@ -6308,10 +6308,17 @@ static int build_lut(int idx, mp_int* a, mp_int* modulus, mp_digit mp,
      return MP_OKAY;
 
    /* err cleanup */
+#ifdef _WIN64
+   for (y = 0; y < (unsigned) (1i64<<FP_LUT); y++) {
+      wc_ecc_del_point(fp_cache[idx].LUT[y]);
+      fp_cache[idx].LUT[y] = NULL;
+   }
+#else
    for (y = 0; y < (1U<<FP_LUT); y++) {
       wc_ecc_del_point(fp_cache[idx].LUT[y]);
       fp_cache[idx].LUT[y] = NULL;
    }
+#endif
    wc_ecc_del_point(fp_cache[idx].g);
    fp_cache[idx].g         = NULL;
    fp_cache[idx].lru_count = 0;
