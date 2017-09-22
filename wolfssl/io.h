@@ -412,7 +412,7 @@ WOLFSSL_API void wolfSSL_SetIOWriteFlags(WOLFSSL* ssl, int flags);
     #endif
 #endif
 #ifndef XINET_PTON
-    #ifdef _WIN32
+    #ifdef _WIN32 /* Windows-friendly definition */
         #define XINET_PTON(a,b,c)   InetPton((a),(b),(c))
     #else
         #define XINET_PTON(a,b,c)   inet_pton((a),(b),(c))
