@@ -973,11 +973,15 @@ THREAD_RETURN CYASSL_THREAD server_test(void* args)
     #if !defined(NO_FILESYSTEM)
         if (SSL_CTX_use_certificate_chain_file(ctx, ourCert)
                                          != SSL_SUCCESS)
-            err_sys_ex(runWithErrors, "can't load server cert file, check file and run from"
-                    " wolfSSL home dir");
-    #else
-        /* loads cert chain file using buffer API */
-        load_buffer(ctx, ourCert, WOLFSSL_CERT_CHAIN);
+            err_sys_ex(runWithErrors, "can't load server cert file, check file"
+                                      " and run from wolfSSL home dir");
+    #else /* NO_FILESYSTEM is defined */
+        #ifdef FORCE_BUFFER_TEST
+            /* loads cert chain file using buffer API */
+            load_buffer(ctx, ourCert, WOLFSSL_CERT_CHAIN);
+        #else
+            err_sys("load_buffer(WOLFSSL_CTX, fname, type) undefined");
+        #endif
     #endif
     }
 #endif
@@ -1013,9 +1017,13 @@ THREAD_RETURN CYASSL_THREAD server_test(void* args)
                                          != SSL_SUCCESS)
             err_sys_ex(runWithErrors, "can't load server private key file, check file and run "
                 "from wolfSSL home dir");
-    #else
-        /* loads private key file using buffer API */
-        load_buffer(ctx, ourKey, WOLFSSL_KEY);
+    #else /* NO_FILESYSTEM is defined */
+        #ifdef FORCE_BUFFER_TEST
+            /* loads private key file using buffer API */
+            load_buffer(ctx, ourKey, WOLFSSL_KEY);
+        #else
+            err_sys("WOLFSSL_KEY undefined");
+        #endif
     #endif
     }
 #endif

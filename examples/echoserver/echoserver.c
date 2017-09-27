@@ -203,10 +203,14 @@ THREAD_RETURN CYASSL_THREAD echoserver_test(void* args)
                     "Please run from wolfSSL home dir");
     #endif
     } /* doPSK */
-#elif !defined(NO_CERTS)
+#elif !defined(NO_CERTS) /* NO_FILESYSTEM is defined */
     if (!doPSK) {
-        load_buffer(ctx, svrCertFile, WOLFSSL_CERT);
-        load_buffer(ctx, svrKeyFile,  WOLFSSL_KEY);
+        #ifdef FORCE_BUFFER_TEST
+            load_buffer(ctx, svrCertFile, WOLFSSL_CERT);
+            load_buffer(ctx, svrKeyFile,  WOLFSSL_KEY);
+        #else
+            err_sys("load_buffer(WOLFSSL_CTX, fname, type) undefined");
+        #endif
     }
 #endif
 

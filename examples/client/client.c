@@ -1543,9 +1543,13 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
             err_sys("can't load client private key file, check file and run "
                     "from wolfSSL home dir");
         }
-#else
-        load_buffer(ctx, ourCert, WOLFSSL_CERT_CHAIN);
-        load_buffer(ctx, ourKey, WOLFSSL_KEY);
+#else /* NO_FILESYSTEM is defined */
+    #ifdef FORCE_BUFFER_TEST
+            load_buffer(ctx, ourCert, WOLFSSL_CERT_CHAIN);
+            load_buffer(ctx, ourKey, WOLFSSL_KEY);
+    #else
+            err_sys("load_buffer(WOLFSSL_CTX, fname, type) undefined");
+    #endif
 #endif  /* !defined(NO_FILESYSTEM) */
     }
 
@@ -1556,8 +1560,12 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
             wolfSSL_CTX_free(ctx);
             err_sys("can't load ca file, Please run from wolfSSL home dir");
         }
-#else
+#else /* NO_FILESYSTEM is defined */
+    #ifdef FORCE_BUFFER_TEST
         load_buffer(ctx, verifyCert, WOLFSSL_CA);
+    #else
+        err_sys("WOLFSSL_CA is undefined");
+    #endif
 #endif  /* !defined(NO_FILESYSTEM) */
 #ifdef HAVE_ECC
         /* load ecc verify too, echoserver uses it by default w/ ecc */
@@ -1566,8 +1574,12 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
             wolfSSL_CTX_free(ctx);
             err_sys("can't load ecc ca file, Please run from wolfSSL home dir");
         }
-#else
+#else /* NO_FILESYSTEM is defined */
+    #ifdef FORCE_BUFFER_TEST
         load_buffer(ctx, eccCertFile, WOLFSSL_CA);
+    #else
+        err_sys("WOLFSSL_CA is undefined");
+    #endif
 #endif  /* !defined(NO_FILESYSTEM) */
 #endif /* HAVE_ECC */
 #if defined(WOLFSSL_TRUST_PEER_CERT) && !defined(NO_FILESYSTEM)
