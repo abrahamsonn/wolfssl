@@ -4988,6 +4988,13 @@ int aes_test(void)
             0x13,0xc2,0xdd,0x08,0x45,0x79,0x41,0xa6
         };
 
+#if defined(WOLFSSL_AES_DIRECT)
+    printf("WOLFSSL_AES_DIRECT is defined\n");
+#endif
+#if defined(WOLFSSL_AES_COUNTER)
+    printf("WOLFSSL_AES_COUNTER is defined\n");
+#endif
+
         wc_AesSetKeyDirect(&enc, ctr128Key, sizeof(ctr128Key),
                            ctrIv, AES_ENCRYPTION);
         /* Ctr only uses encrypt, even on key setup */
