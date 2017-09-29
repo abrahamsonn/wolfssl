@@ -1,4 +1,4 @@
-/* io.c
+/* wolfio.c
  *
  * Copyright (C) 2006-2016 wolfSSL Inc.
  *
@@ -36,7 +36,7 @@
 
 #include <wolfssl/internal.h>
 #include <wolfssl/error-ssl.h>
-#include <wolfssl/io.h>
+#include <wolfssl/wolfio.h>
 
 #if defined(HAVE_HTTP_CLIENT)
     #include <stdlib.h>   /* atoi(), strtol() */
@@ -572,9 +572,8 @@ int wolfIO_Recv(SOCKET_T sd, char *buf, int sz, int rdFlags)
 int wolfIO_Send(SOCKET_T sd, char *buf, int sz, int wrFlags)
 {
     int sent;
-    int len = sz;
 
-    sent = (int)SEND_FUNCTION(sd, &buf[sz - len], len, wrFlags);
+    sent = (int)SEND_FUNCTION(sd, buf, sz, wrFlags);
     sent = TranslateReturnCode(sent, sd);
 
     return sent;

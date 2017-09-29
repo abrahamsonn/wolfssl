@@ -215,7 +215,7 @@ typedef WOLFSSL_X509_STORE_CTX X509_STORE_CTX;
 #define SSL_SESSION_get_master_key        wolfSSL_SESSION_get_master_key
 #define SSL_SESSION_get_master_key_length wolfSSL_SESSION_get_master_key_length
 
-#define SSL_X509_NAME_get_text_by_NID wolfSSL_X509_NAME_get_text_by_NID
+#define X509_NAME_get_text_by_NID wolfSSL_X509_NAME_get_text_by_NID
 #define X509_get_ext_d2i wolfSSL_X509_get_ext_d2i
 #define X509_digest wolfSSL_X509_digest
 #define X509_free wolfSSL_X509_free
@@ -721,7 +721,8 @@ typedef WOLFSSL_ASN1_BIT_STRING    ASN1_BIT_STRING;
 #define NID_tlsfeature                92  /* id-pe 24 */
 
 
-#if defined(WOLFSSL_NGINX) || defined(WOLFSSL_HAPROXY)
+#if defined(WOLFSSL_NGINX) || defined(WOLFSSL_HAPROXY) || \
+    defined(WOLFSSL_MYSQL_COMPATIBLE)
 
 #include <wolfssl/error-ssl.h>
 

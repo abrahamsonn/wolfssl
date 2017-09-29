@@ -154,7 +154,7 @@ int wc_RNG_GenerateByte(WC_RNG* rng, byte* b)
 
 #define OUTPUT_BLOCK_LEN  (SHA256_DIGEST_SIZE)
 #define MAX_REQUEST_LEN   (0x10000)
-#define RESEED_INTERVAL   (1000000)
+#define RESEED_INTERVAL   WC_RESEED_INTERVAL
 #define SECURITY_STRENGTH (256)
 #define ENTROPY_SZ        (SECURITY_STRENGTH/8)
 #define NONCE_SZ          (ENTROPY_SZ/2)
@@ -408,13 +408,17 @@ static INLINE void array_add(byte* d, word32 dLen, const byte* s, word32 sLen)
 /* Returns: DRBG_SUCCESS, DRBG_NEED_RESEED, or DRBG_FAILURE */
 static int Hash_DRBG_Generate(DRBG* drbg, byte* out, word32 outSz)
 {
-    int ret = DRBG_NEED_RESEED;
+    int ret;
     Sha256 sha;
-    DECLARE_VAR(digest, byte, SHA256_DIGEST_SIZE, drbg->heap);
+    byte type;
+    word32 reseedCtr;
 
-    if (drbg->reseedCtr != RESEED_INTERVAL) {
-        byte type = drbgGenerateH;
-        word32 reseedCtr = drbg->reseedCtr;
+    if (drbg->reseedCtr == RESEED_INTERVAL) {
+        return DRBG_NEED_RESEED;
+    } else {
+        DECLARE_VAR(digest, byte, SHA256_DIGEST_SIZE, drbg->heap);
+        type = drbgGenerateH;
+        reseedCtr = drbg->reseedCtr;
 
         ret = Hash_gen(drbg, out, outSz, drbg->V);
         if (ret == DRBG_SUCCESS) {
@@ -444,10 +448,9 @@ static int Hash_DRBG_Generate(DRBG* drbg, byte* out, word32 outSz)
             }
             drbg->reseedCtr++;
         }
+        ForceZero(digest, SHA256_DIGEST_SIZE);
+        FREE_VAR(digest, drbg->heap);
     }
-    ForceZero(digest, SHA256_DIGEST_SIZE);
-
-    FREE_VAR(digest, drbg->heap);
 
     return (ret == 0) ? DRBG_SUCCESS : DRBG_FAILURE;
 }
@@ -1232,7 +1235,7 @@ int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
             word32 *rnd32 = (word32 *)rnd;
             word32 size = sz;
             byte* op = output;
-            
+
 #if ((__PIC32_FEATURE_SET0 == 'E') && (__PIC32_FEATURE_SET1 == 'C'))
             RNGNUMGEN1 = _CP0_GET_COUNT();
             RNGPOLY1 = _CP0_GET_COUNT();
@@ -1412,10 +1415,10 @@ int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
         #define USE_TEST_GENSEED
     #endif /* FREESCALE_K70_RNGA */
 
-#elif defined(STM32F2_RNG) || defined(STM32F4_RNG)
+#elif defined(STM32_RNG)
     /*
      * wc_Generate a RNG seed using the hardware random number generator
-     * on the STM32F2/F4. */
+     * on the STM32F2/F4/F7. */
 
     #ifdef WOLFSSL_STM32_CUBEMX
     int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
@@ -1447,12 +1450,19 @@ int wc_GenerateSeed(OS_Seed* os, byte* output, word32 sz)
         /* enable RNG clock source */
         RCC_AHB2PeriphClockCmd(RCC_AHB2Periph_RNG, ENABLE);
 
+        /* reset RNG */
+        RNG_DeInit();
+
         /* enable RNG peripheral */
         RNG_Cmd(ENABLE);
 
+        /* verify no errors with RNG_CLK or Seed */
+        if (RNG_GetFlagStatus(RNG_FLAG_SECS | RNG_FLAG_CECS) != RESET)
+        	return RNG_FAILURE_E;
+
         for (i = 0; i < (int)sz; i++) {
             /* wait until RNG number is ready */
-            while(RNG_GetFlagStatus(RNG_FLAG_DRDY)== RESET) { }
+            while (RNG_GetFlagStatus(RNG_FLAG_DRDY) == RESET) { }
 
             /* get value */
             output[i] = RNG_GetRandomNumber();
