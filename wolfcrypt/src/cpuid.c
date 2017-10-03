@@ -63,13 +63,7 @@
         unsigned int reg[5];
 
         reg[4] = '\0';
-
-        #ifndef _MSC_VER
         cpuid(reg, 0, 0);
-        #else
-        cpuid(reg, 0);
-        #endif /* _MSC_VER */ 
-
         if (XMEMCMP((char *)&(reg[EBX]), "Genu", 4) == 0 &&
             XMEMCMP((char *)&(reg[EDX]), "ineI", 4) == 0 &&
             XMEMCMP((char *)&(reg[ECX]), "ntel", 4) == 0) {
