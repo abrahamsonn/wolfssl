@@ -7795,6 +7795,7 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
 {
     int ret = 0;
 #ifdef WOLFSSL_ASYNC_CRYPT
+    WC_ASYNC_DEV* asyncDev;
     ProcPeerCertArgs* args = (ProcPeerCertArgs*)ssl->async.args;
     typedef char args_test[sizeof(ssl->async.args) >= sizeof(*args) ? 1 : -1];
     (void)sizeof(args_test);
@@ -8028,17 +8029,28 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
                         args->dCertInit = 1;
                     }
 
-                    ret = ParseCertRelative(args->dCert, CERT_TYPE, 0,
-                                                            ssl->ctx->cm);
-                    if (ret != 0 && ret != WC_PENDING_E)
-                        goto exit_ppc;
+                #ifdef WOLFSSL_ASYNC_CRYPT
+                    do {
+                        /* intialize event */
+                        asyncDev = args->dCert->sigCtx.asyncDev;
+                        if (asyncDev) {
+                            ret = wolfSSL_AsyncInit(ssl, asyncDev,
+                                WC_ASYNC_FLAG_CALL_AGAIN);
+                            if (ret != 0)
+                                break;
+                        }
+                #endif
+                        ret = ParseCertRelative(args->dCert, CERT_TYPE, 0,
+                                                                ssl->ctx->cm);
+                        if (ret != 0 && ret != WC_PENDING_E)
+                            goto exit_ppc;
 
                 #ifdef WOLFSSL_ASYNC_CRYPT
-                    if (ret == WC_PENDING_E) {
-                        ret = wolfSSL_AsyncPush(ssl,
-                            args->dCert->sigCtx.asyncDev);
-                        goto exit_ppc;
-                    }
+                        if (asyncDev && ret == WC_PENDING_E) {
+                            ret = wolfSSL_AsyncPush(ssl, asyncDev);
+                            goto exit_ppc;
+                        }
+                    } while (ret == WC_PENDING_E && asyncDev == NULL)
                 #endif
 
                 #ifndef NO_SKID
@@ -8096,17 +8108,28 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
                         args->dCertInit = 1;
                     }
 
-                    ret = ParseCertRelative(args->dCert, CERT_TYPE, 0,
-                                                                  ssl->ctx->cm);
-                    if (ret != 0 && ret != WC_PENDING_E) {
-                        goto exit_ppc;
-                    }
                 #ifdef WOLFSSL_ASYNC_CRYPT
-                    if (ret == WC_PENDING_E) {
-                        ret = wolfSSL_AsyncPush(ssl,
-                            args->dCert->sigCtx.asyncDev);
-                        goto exit_ppc;
-                    }
+                    do {
+                        /* intialize event */
+                        asyncDev = args->dCert->sigCtx.asyncDev;
+                        if (asyncDev) {
+                            ret = wolfSSL_AsyncInit(ssl, asyncDev,
+                                WC_ASYNC_FLAG_CALL_AGAIN);
+                            if (ret != 0)
+                                goto exit_ppc;
+                        }
+                #endif
+                        ret = ParseCertRelative(args->dCert, CERT_TYPE, 0,
+                                                                  ssl->ctx->cm);
+                        if (ret != 0 && ret != WC_PENDING_E) {
+                            goto exit_ppc;
+                        }
+                #ifdef WOLFSSL_ASYNC_CRYPT
+                        if (asyncDev && ret == WC_PENDING_E) {
+                            ret = wolfSSL_AsyncPush(ssl, asyncDev);
+                            goto exit_ppc;
+                        }
+                    } while (ret == WC_PENDING_E && asyncDev == NULL);
                 #endif
 
                 #ifndef NO_SKID
@@ -8143,14 +8166,25 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
                         args->dCertInit = 1;
                     }
 
-                    ret = ParseCertRelative(args->dCert, CERT_TYPE,
+                #ifdef WOLFSSL_ASYNC_CRYPT
+                    do {
+                        /* intialize event */
+                        asyncDev = args->dCert->sigCtx.asyncDev;
+                        if (asyncDev) {
+                            ret = wolfSSL_AsyncInit(ssl, asyncDev,
+                                WC_ASYNC_FLAG_CALL_AGAIN);
+                            if (ret != 0)
+                                goto exit_ppc;
+                        }
+                #endif
+                        ret = ParseCertRelative(args->dCert, CERT_TYPE,
                                     !ssl->options.verifyNone, ssl->ctx->cm);
                 #ifdef WOLFSSL_ASYNC_CRYPT
-                    if (ret == WC_PENDING_E) {
-                        ret = wolfSSL_AsyncPush(ssl,
-                            args->dCert->sigCtx.asyncDev);
-                        goto exit_ppc;
-                    }
+                        if (asyncDev && ret == WC_PENDING_E) {
+                            ret = wolfSSL_AsyncPush(ssl, asyncDev);
+                            goto exit_ppc;
+                        }
+                    } while (ret == WC_PENDING_E && asyncDev == NULL);
                 #endif
 
                 #ifndef NO_SKID
@@ -8225,7 +8259,7 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
 
                     #ifdef WOLFSSL_NGINX
                         if (args->certIdx > args->untrustedDepth)
-                            args->untrustedDepth = args->certIdx + 1;
+                            args->untrustedDepth = (char) args->certIdx + 1;
                     #endif
 
                         /* already verified above */
@@ -8339,15 +8373,26 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
                 if (!haveTrustPeer)
             #endif
                 {
-                    /* only parse if not already present in dCert from above */
-                    ret = ParseCertRelative(args->dCert, CERT_TYPE,
+                #ifdef WOLFSSL_ASYNC_CRYPT
+                    do {
+                        /* intialize event */
+                        asyncDev = args->dCert->sigCtx.asyncDev;
+                        if (asyncDev) {
+                            ret = wolfSSL_AsyncInit(ssl, asyncDev,
+                                WC_ASYNC_FLAG_CALL_AGAIN);
+                            if (ret != 0)
+                                goto exit_ppc;
+                        }
+                #endif
+                        /* only parse if not already present in dCert from above */
+                        ret = ParseCertRelative(args->dCert, CERT_TYPE,
                                     !ssl->options.verifyNone, ssl->ctx->cm);
                 #ifdef WOLFSSL_ASYNC_CRYPT
-                    if (ret == WC_PENDING_E) {
-                        ret = wolfSSL_AsyncPush(ssl,
-                            args->dCert->sigCtx.asyncDev);
-                        goto exit_ppc;
-                    }
+                        if (asyncDev && ret == WC_PENDING_E) {
+                            ret = wolfSSL_AsyncPush(ssl, asyncDev);
+                            goto exit_ppc;
+                        }
+                    } while (ret == WC_PENDING_E && asyncDev == NULL);
                 #endif
                 }
 
@@ -13280,8 +13325,8 @@ int SendCertificateRequest(WOLFSSL* ssl)
     while (names != NULL) {
         byte seq[MAX_SEQ_SZ];
 
-        c16toa(names->data.name->rawLen +
-               SetSequence(names->data.name->rawLen, seq), &output[i]);
+        c16toa((word16) (names->data.name->rawLen +
+               SetSequence(names->data.name->rawLen, seq)), &output[i]);
         i += OPAQUE16_LEN;
         i += SetSequence(names->data.name->rawLen, output + i);
         XMEMCPY(output + i, names->data.name->raw, names->data.name->rawLen);
@@ -17180,6 +17225,8 @@ static int DoServerKeyExchange(WOLFSSL* ssl, const byte* input,
                                word32* inOutIdx, word32 size)
 {
     int ret = 0;
+    (void)input;
+    (void)size;
 #ifdef WOLFSSL_ASYNC_CRYPT
     DskeArgs* args = (DskeArgs*)ssl->async.args;
     typedef char args_test[sizeof(ssl->async.args) >= sizeof(*args) ? 1 : -1];
@@ -18688,22 +18735,24 @@ int SendClientKeyExchange(WOLFSSL* ssl)
             #endif /* HAVE_PK_CALLBACKS */
 
                 #ifdef HAVE_CURVE25519
-                    if (ssl->peerX25519KeyPresent) {
-                        if (!ssl->peerX25519Key || !ssl->peerX25519Key->dp) {
-                            ERROR_OUT(NO_PEER_KEY, exit_scke);
-                        }
+                    #if !defined(NO_DH) || defined(HAVE_ECC)
+                        if (ssl->peerX25519KeyPresent) {
+                            if (!ssl->peerX25519Key || !ssl->peerX25519Key->dp) {
+                                ERROR_OUT(NO_PEER_KEY, exit_scke);
+                            }
 
-                        /* create private key */
-                        ssl->hsType = DYNAMIC_TYPE_CURVE25519;
-                        ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
-                        if (ret != 0) {
-                            goto exit_scke;
-                        }
+                            /* create private key */
+                            ssl->hsType = DYNAMIC_TYPE_CURVE25519;
+                            ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
+                            if (ret != 0) {
+                                goto exit_scke;
+                            }
 
-                        ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
-                                            ssl->peerX25519Key);
-                        break;
-                    }
+                            ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
+                                                ssl->peerX25519Key);
+                            break;
+                        }
+                    #endif
                 #endif
                 #ifdef HAVE_ECC
                     if (ssl->specs.static_ecdh) {
@@ -19172,21 +19221,23 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                 #endif
 
                 #ifdef HAVE_CURVE25519
-                    if (ssl->peerX25519KeyPresent) {
-                        ret = X25519SharedSecret(ssl,
-                            (curve25519_key*)ssl->hsKey, ssl->peerX25519Key,
-                            args->encSecret + OPAQUE8_LEN, &args->encSz,
-                            ssl->arrays->preMasterSecret,
-                            &ssl->arrays->preMasterSz,
-                            WOLFSSL_CLIENT_END,
-                        #ifdef HAVE_PK_CALLBACKS
-                            ssl->EccSharedSecretCtx
-                        #else
-                            NULL
-                        #endif
-                        );
-                        break;
-                    }
+                    #if !defined(NO_DH) || defined(HAVE_ECC)
+                        if (ssl->peerX25519KeyPresent) {
+                            ret = X25519SharedSecret(ssl,
+                                (curve25519_key*)ssl->hsKey, ssl->peerX25519Key,
+                                args->encSecret + OPAQUE8_LEN, &args->encSz,
+                                ssl->arrays->preMasterSecret,
+                                &ssl->arrays->preMasterSz,
+                                WOLFSSL_CLIENT_END,
+                            #ifdef HAVE_PK_CALLBACKS
+                                ssl->EccSharedSecretCtx
+                            #else
+                                NULL
+                            #endif
+                            );
+                            break;
+                        }
+                    #endif
                 #endif
                 #ifdef HAVE_ECC
                     peerKey = (ssl->specs.static_ecdh) ?
@@ -19787,17 +19838,21 @@ int SendCertificateVerify(WOLFSSL* ssl)
             }
         #endif
 
-    #ifndef NO_OLD_TLS
-        #ifndef NO_SHA
-            /* old tls default */
-            SetDigest(ssl, sha_mac);
-        #endif
-    #else
-        #ifndef NO_SHA256
-            /* new tls default */
-            SetDigest(ssl, sha256_mac);
-        #endif
-    #endif /* !NO_OLD_TLS */
+        #ifndef NO_OLD_TLS
+            #ifndef NO_SHA
+                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
+                    /* old tls default */
+                    SetDigest(ssl, sha_mac);
+                #endif
+            #endif
+        #else
+            #ifndef NO_SHA256
+                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
+                    /* new tls default */
+                    SetDigest(ssl, sha256_mac);
+                #endif
+            #endif
+        #endif /* !NO_OLD_TLS */
 
             if (ssl->hsType == DYNAMIC_TYPE_RSA) {
         #ifdef WC_RSA_PSS
@@ -19815,10 +19870,14 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 args->sigAlgo = ed25519_sa_algo;
 
             if (IsAtLeastTLSv1_2(ssl)) {
+        #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
                 EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
                              args->verify);
+        #endif
                 args->extraSz = HASH_SIG_SIZE;
+            #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
                 SetDigest(ssl, ssl->suites->hashAlgo);
+            #endif
             }
         #ifndef NO_OLD_TLS
             else {
@@ -19833,12 +19892,14 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 ssl->buffers.sig.length = FINISHED_SZ;
                 args->sigSz = ENCRYPT_LEN;
 
-                if (IsAtLeastTLSv1_2(ssl)) {
-                    ssl->buffers.sig.length = wc_EncodeSignature(
-                            ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
-                            ssl->buffers.digest.length,
-                            TypeHash(ssl->suites->hashAlgo));
-                }
+                #if !defined(NO_DH) || defined(HAVE_ECC)
+                    if (IsAtLeastTLSv1_2(ssl)) {
+                        ssl->buffers.sig.length = wc_EncodeSignature(
+                                ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
+                                ssl->buffers.digest.length,
+                                TypeHash(ssl->suites->hashAlgo));
+                    }
+                #endif
 
                 /* prepend hdr */
                 c16toa(args->length, args->verify + args->extraSz);
@@ -20120,7 +20181,7 @@ int SetTicket(WOLFSSL* ssl, const byte* ticket, word32 length)
         ssl->session.ticket = sessionTicket;
         ssl->session.isDynamic = 1;
     }
-    ssl->session.ticketLen = length;
+    ssl->session.ticketLen = (word16)length;
 
     if (length > 0) {
         XMEMCPY(ssl->session.ticket, ticket, length);
@@ -20266,8 +20327,8 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
 
         /* now write to output */
         /* first version */
-        output[idx++] = ssl->version.major;
-        output[idx++] = ssl->version.minor;
+        output[idx++] = (byte)ssl->version.major;
+        output[idx++] = (byte)ssl->version.minor;
 
         /* then random and session id */
         if (!ssl->options.resuming) {
@@ -20690,15 +20751,18 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                                 }
                             }
 
-                            if (ssl->eccTempKeyPresent == 0) {
-                                ret = X25519MakeKey(ssl,
-                                        (curve25519_key*)ssl->eccTempKey, NULL);
-                                if (ret == 0 || ret == WC_PENDING_E) {
-                                    ssl->eccTempKeyPresent =
-                                        DYNAMIC_TYPE_CURVE25519;
+                            #if !defined(NO_DH) || defined(HAVE_ECC)
+                                if (ssl->eccTempKeyPresent == 0) {
+                                    ret = X25519MakeKey(ssl,
+                                            (curve25519_key*)ssl->eccTempKey,
+                                            NULL);
+                                    if (ret == 0 || ret == WC_PENDING_E) {
+                                        ssl->eccTempKeyPresent =
+                                            DYNAMIC_TYPE_CURVE25519;
+                                    }
                                 }
-                            }
-                            break;
+                                break;
+                            #endif
                         }
                     #endif
                     #ifdef HAVE_ECC
@@ -23052,12 +23116,17 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                                 WOLFSSL_MSG("Oops, peer sent RSA key but not in verify");
                             }
 
+                        #if !defined(NO_DH) || defined(HAVE_ECC)
                             SetDigest(ssl, args->hashAlgo);
+                        #endif
 
+                        #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
+                           && !defined(NO_RSA)
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
                                 TypeHash(args->hashAlgo));
+                        #endif
 
                             if (args->sendSz != args->sigSz || !args->output ||
                                 XMEMCMP(args->output, encodedSig,
@@ -24204,24 +24273,27 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                     case ecc_diffie_hellman_kea:
                     {
                         void* private_key = ssl->eccTempKey;
+                        (void)private_key;
 
                     #ifdef HAVE_CURVE25519
-                        if (ssl->ecdhCurveOID == ECC_X25519_OID) {
-                            ret = X25519SharedSecret(ssl,
-                                (curve25519_key*)private_key,
-                                ssl->peerX25519Key,
-                                input + args->idx, &args->length,
-                                ssl->arrays->preMasterSecret,
-                                &ssl->arrays->preMasterSz,
-                                WOLFSSL_SERVER_END,
-                            #ifdef HAVE_PK_CALLBACKS
-                                ssl->EccSharedSecretCtx
-                            #else
-                                NULL
-                            #endif
-                            );
-                            break;
-                        }
+                        #if !defined(NO_DH) || defined(HAVE_ECC)
+                            if (ssl->ecdhCurveOID == ECC_X25519_OID) {
+                                ret = X25519SharedSecret(ssl,
+                                    (curve25519_key*)private_key,
+                                    ssl->peerX25519Key,
+                                    input + args->idx, &args->length,
+                                    ssl->arrays->preMasterSecret,
+                                    &ssl->arrays->preMasterSz,
+                                    WOLFSSL_SERVER_END,
+                                #ifdef HAVE_PK_CALLBACKS
+                                    ssl->EccSharedSecretCtx
+                                #else
+                                    NULL
+                                #endif
+                                );
+                                break;
+                            }
+                        #endif
                     #endif
                     #ifdef HAVE_ECC
                         if (ssl->specs.static_ecdh) {

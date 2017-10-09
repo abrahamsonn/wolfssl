@@ -188,7 +188,15 @@
 #endif
 
 #ifdef NO_SHA256
-    #define SHA256_DIGEST_SIZE 32
+    #define SHA256_DIGEST_SIZE 20
+#endif
+
+#ifndef NO_SHA384
+    #define SHA384_DIGEST_SIZE 48
+#endif
+
+#ifndef NO_SHA512
+    #define SHA512_DIGEST_SIZE 64
 #endif
 
 #ifdef NO_MD5

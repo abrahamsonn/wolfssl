@@ -41,6 +41,12 @@
     }
 #endif
 
+#ifdef _WIN32
+    /* This prevents VS/MSBuild from freaking out with the safe usage of    *
+     * the sprintf method                                                   */
+    #define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
 static wolfSSL_Mutex debug_mutex; /* mutex for access to debug structure */
 
@@ -242,6 +248,15 @@ void WOLFSSL_ERROR(int error)
     #endif
     {
         char buffer[80];
+
+        /* This following ifdef prevents VS from freaking out about usage   *
+         * of sprintf - even though the largest possible value concatenated *
+         * to the buffer won't cause an overflow                            */
+        #ifdef _WIN32
+        #pragma warning( push )
+        #pragma warning( disable : 4996 )
+        #endif
+
         #if defined(OPENSSL_EXTRA) || defined(DEBUG_WOLFSSL_VERBOSE)
             (void)usrCtx; /* a user ctx for future flexibility */
             (void)func;
@@ -265,6 +280,11 @@ void WOLFSSL_ERROR(int error)
         #else
             sprintf(buffer, "wolfSSL error occurred, error = %d", error);
         #endif
+
+        #ifdef _WIN32
+        #pragma warning( pop )
+        #endif
+
         #ifdef DEBUG_WOLFSSL
         wolfssl_log(ERROR_LOG , buffer);
         #endif
