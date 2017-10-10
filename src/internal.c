@@ -18747,7 +18747,8 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                 #ifdef HAVE_CURVE25519
                     #if !defined(NO_DH) || defined(HAVE_ECC)
                         if (ssl->peerX25519KeyPresent) {
-                            if (!ssl->peerX25519Key || !ssl->peerX25519Key->dp) {
+                            if (!ssl->peerX25519Key ||
+                                    !ssl->peerX25519Key->dp) {
                                 ERROR_OUT(NO_PEER_KEY, exit_scke);
                             }
 
@@ -18758,7 +18759,8 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                                 goto exit_scke;
                             }
 
-                            ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
+                            ret = X25519MakeKey(ssl,
+                                                (curve25519_key*)ssl->hsKey,
                                                 ssl->peerX25519Key);
                             break;
                         }

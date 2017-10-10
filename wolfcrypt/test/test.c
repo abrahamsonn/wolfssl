@@ -7958,7 +7958,8 @@ int rsa_test(void)
     #endif
             if (ret >= 0) {
                 ret = wc_RsaPrivateDecrypt_ex(out, idx, plain, plainSz, &key,
-                   WC_RSA_OAEP_PAD, WC_HASH_TYPE_SHA256, WC_MGF1SHA256, in, inLen);
+                   WC_RSA_OAEP_PAD, WC_HASH_TYPE_SHA256, WC_MGF1SHA256,
+                   in, inLen);
             }
         } while (ret == WC_PENDING_E);
         if (ret > 0) { /* should fail */
