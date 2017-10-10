@@ -24490,10 +24490,9 @@ int wolfSSL_X509_NAME_get_sz(WOLFSSL_X509_NAME* name)
 int wolfSSL_set_tlsext_host_name(WOLFSSL* ssl, const char* host_name)
 {
     int ret;
-    word16 host_name_length = (word16) XSTRLEN(host_name);
     WOLFSSL_ENTER("wolfSSL_set_tlsext_host_name");
     ret = wolfSSL_UseSNI(ssl, WOLFSSL_SNI_HOST_NAME,
-            host_name, host_name_length);
+            host_name, (word16) XSTRLEN(host_name));
     WOLFSSL_LEAVE("wolfSSL_set_tlsext_host_name", ret);
     return ret;
 }

@@ -405,7 +405,7 @@ WOLFSSL_API void wolfSSL_SetIOWriteFlags(WOLFSSL* ssl, int flags);
 
 
 #ifndef XINET_NTOP
-    #ifdef _WIN32
+    #ifdef _WIN32 /* Windows-friendly definition */
         #define XINET_NTOP(a,b,c,d) InetNtop((a),(b),(c),(d))
     #else
         #define XINET_NTOP(a,b,c,d) inet_ntop((a),(b),(c),(d))

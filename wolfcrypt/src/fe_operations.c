@@ -481,7 +481,8 @@ void fe_tobytes(unsigned char *s,const fe h)
   evidently 2^255 h10-2^255 q = 0.
   Goal: Output h0+...+2^230 h9.
   */
-    /* values in h are cast to unsigned chars to remove warnings */
+
+  /* the following unsigned char casts remove some compile-time warnings */
   s[0] = (unsigned char) (h0 >> 0);
   s[1] = (unsigned char) (h0 >> 8);
   s[2] = (unsigned char) (h0 >> 16);
