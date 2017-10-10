@@ -91,6 +91,12 @@
 /* Uncomment next line if using STM32F2 */
 /* #define WOLFSSL_STM32F2 */
 
+/* Uncomment next line if using STM32F4 */
+/* #define WOLFSSL_STM32F4 */
+
+/* Uncomment next line if using STM32F7 */
+/* #define WOLFSSL_STM32F7 */
+
 /* Uncomment next line if using QL SEP settings */
 /* #define WOLFSSL_QL */
 
@@ -170,6 +176,17 @@
     #undef WC_RSA_BLINDING
 #endif
 
+
+#if defined(_WIN32) && !defined(_M_X64) && \
+    defined(HAVE_AESGCM) && defined(WOLFSSL_AESNI)
+
+/* The _M_X64 macro is what's used in the headers for MSC to tell if it
+ * has the 64-bit versions of the 128-bit integers available. If one is
+ * building on 32-bit Windows with AES-NI, turn off the AES-GCMloop
+ * unrolling. */
+
+    #define AES_GCM_AESNI_NO_UNROLL
+#endif
 
 #ifdef IPHONE
     #define SIZEOF_LONG_LONG 8
@@ -960,33 +977,9 @@ extern void uITRON4_free(void *p) ;
     #define GCM_TABLE
 #endif
 
-#ifdef WOLFSSL_STM32F2
-    #define SIZEOF_LONG_LONG 8
-    #define NO_DEV_RANDOM
-    #define NO_WOLFSSL_DIR
-    #undef  NO_RABBIT
-    #define NO_RABBIT
-    #undef  NO_64BIT
-    #define NO_64BIT
-    #define STM32F2_RNG
-    #define STM32F2_CRYPTO
-    #if !defined(__GNUC__) && !defined(__ICCARM__)
-        #define KEIL_INTRINSICS
-    #endif
-    #define NO_OLD_RNGNAME
-    #ifdef WOLFSSL_STM32_CUBEMX
-        #include "stm32f2xx_hal.h"
-        #ifndef STM32_HAL_TIMEOUT
-            #define STM32_HAL_TIMEOUT   0xFF
-        #endif
-    #else
-        #include "stm32f2xx.h"
-        #include "stm32f2xx_cryp.h"
-        #include "stm32f2xx_hash.h"
-    #endif /* WOLFSSL_STM32_CUBEMX */
-#endif
+#if defined(WOLFSSL_STM32F2) || defined(WOLFSSL_STM32F4) || \
+    defined(WOLFSSL_STM32F7)
 
-#ifdef WOLFSSL_STM32F4
     #define SIZEOF_LONG_LONG 8
     #define NO_DEV_RANDOM
     #define NO_WOLFSSL_DIR
@@ -994,23 +987,56 @@ extern void uITRON4_free(void *p) ;
     #define NO_RABBIT
     #undef  NO_64BIT
     #define NO_64BIT
-    #define STM32F4_RNG
-    #define STM32F4_CRYPTO
-    #define NO_OLD_RNGNAME
+    #ifndef NO_STM32_RNG
+        #undef  STM32_RNG
+        #define STM32_RNG
+    #endif
+    #ifndef NO_STM32_CRYPTO
+        #undef  STM32_CRYPTO
+        #define STM32_CRYPTO
+    #endif
+    #ifndef NO_STM32_HASH
+        #undef  STM32_HASH
+        #define STM32_HASH
+    #endif
     #if !defined(__GNUC__) && !defined(__ICCARM__)
         #define KEIL_INTRINSICS
     #endif
+    #define NO_OLD_RNGNAME
     #ifdef WOLFSSL_STM32_CUBEMX
-        #include "stm32f4xx_hal.h"
+        #if defined(WOLFSSL_STM32F2)
+            #include "stm32f2xx_hal.h"
+        #elif defined(WOLFSSL_STM32F4)
+            #include "stm32f4xx_hal.h"
+        #elif defined(WOLFSSL_STM32F7)
+            #include "stm32f7xx_hal.h"
+        #endif
+
         #ifndef STM32_HAL_TIMEOUT
             #define STM32_HAL_TIMEOUT   0xFF
         #endif
     #else
-        #include "stm32f4xx.h"
-        #include "stm32f4xx_cryp.h"
-        #include "stm32f4xx_hash.h"
+        #if defined(WOLFSSL_STM32F2)
+            #include "stm32f2xx.h"
+            #ifdef STM32_CRYPTO
+                #include "stm32f2xx_cryp.h"
+            #endif
+            #ifdef STM32_HASH
+                #include "stm32f2xx_hash.h"
+            #endif
+        #elif defined(WOLFSSL_STM32F4)
+            #include "stm32f4xx.h"
+            #ifdef STM32_CRYPTO
+                #include "stm32f4xx_cryp.h"
+            #endif
+            #ifdef STM32_HASH
+                #include "stm32f4xx_hash.h"
+            #endif
+        #elif defined(WOLFSSL_STM32F7)
+            #include "stm32f7xx.h"
+        #endif
     #endif /* WOLFSSL_STM32_CUBEMX */
-#endif
+#endif /* WOLFSSL_STM32F2 || WOLFSSL_STM32F4 || WOLFSSL_STM32F7 */
 
 #ifdef MICRIUM
     #include <stdlib.h>
@@ -1342,6 +1368,12 @@ extern void uITRON4_free(void *p) ;
     #else
         #ifndef WOLFCRYPT_ONLY
             #error "AES CBC is required for TLS and can only be disabled for WOLFCRYPT_ONLY builds"
+        #endif
+    #endif
+    #ifdef WOLFSSL_AES_XTS
+        /* AES-XTS makes calls to AES direct functions */
+        #ifndef WOLFSSL_AES_DIRECT
+        #define WOLFSSL_AES_DIRECT
         #endif
     #endif
 #endif

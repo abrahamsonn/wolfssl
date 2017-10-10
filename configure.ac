@@ -185,6 +185,7 @@ then
     enable_psk=yes
     enable_idea=yes
     enable_cmac=yes
+    enable_xts=yes
     enable_webserver=yes
     enable_hc128=yes
     enable_rabbit=yes
@@ -201,6 +202,7 @@ then
     enable_session_ticket=yes
     enable_tlsx=yes
     enable_pkcs7=yes
+    enable_ssh=yes
     enable_scep=yes
     enable_srp=yes
     enable_certservice=yes
@@ -469,6 +471,9 @@ then
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_PUBLIC_MP -DWOLFSSL_PUBLIC_ECC_ADD_DBL"
     AM_CFLAGS="$AM_CFLAGS -DATOMIC_USER -DHAVE_EX_DATA -DWOLFSSL_KEEP_PEER_CERT"
     AM_CFLAGS="$AM_CFLAGS -DHAVE_EXT_CACHE"
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_ALWAYS_VERIFY_CB -DOPENSSL_EXTRA"
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_AES_DIRECT -DWOLFSSL_DER_LOAD"
+    AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_SHA512 -DWOLFSSL_SHA384 -DWOLFSSL_KEY_GEN"
     AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_WPAS"
 fi
 
@@ -480,7 +485,7 @@ AC_ARG_ENABLE([fortress],
     [ ENABLED_FORTRESS=no ]
     )
 
-if test "$ENABLED_OPENSSH" = "yes" || test "$ENABLED_WPAS" = "yes"
+if test "$ENABLED_OPENSSH" = "yes"
 then
     ENABLED_FORTRESS="yes"
 fi
@@ -1749,6 +1754,17 @@ AS_IF([test "x$ENABLED_CMAC" = "xyes"],
 AM_CONDITIONAL([BUILD_CMAC], [test "x$ENABLED_CMAC" = "xyes"])
 
 
+# AES-XTS
+AC_ARG_ENABLE([xts],
+    [AS_HELP_STRING([--enable-xts],[Enable XTS (default: disabled)])],
+    [ ENABLED_XTS=$enableval ],
+    [ ENABLED_XTS=no ]
+    )
+
+AS_IF([test "x$ENABLED_XTS" = "xyes"],
+      [AM_CFLAGS="$AM_CFLAGS -DWOLFSSL_AES_XTS -DWOLFSSL_AES_DIRECT"])
+
+
 # Web Server Build
 AC_ARG_ENABLE([webserver],
     [AS_HELP_STRING([--enable-webserver],[Enable Web Server (default: disabled)])],
@@ -2485,6 +2501,13 @@ AC_ARG_ENABLE([pkcs7],
     [ ENABLED_PKCS7=no ],
     )
 
+
+# wolfSSH Options
+AC_ARG_ENABLE([ssh],
+    [AS_HELP_STRING([--enable-ssh],[Enable wolfSSH options (default: disabled)])],
+    [ ENABLED_WOLFSSH=$enableval ],
+    [ ENABLED_WOLFSSH=no ]
+    )
 
 # Simple Certificate Enrollment Protocol (SCEP)
 AC_ARG_ENABLE([scep],
@@ -3620,6 +3643,18 @@ AS_IF([test "x$ENABLED_NULL_CIPHER" = "xno" && \
       [AM_CFLAGS="-DHAVE_NULL_CIPHER $AM_CFLAGS"
        ENABLED_NULL_CIPHER=yes])
 
+# wolfSSH and WPA Supplicant both need Public MP, only enable once.
+# This will let you know if you enabled wolfSSH but have any of the prereqs
+# disabled. Some of these options, disabling them adds things to the FLAGS and
+# you need to check and add items in two places depending on the option.
+AS_IF([test "x$ENABLED_WOLFSSH" = "xyes"],
+      [AS_IF([test "x$ENABLED_WPAS" = "xno"],[AM_CFLAGS="-DWOLFSSL_PUBLIC_MP $AM_CFLAGS"])
+       AS_IF([test "x$ENABLED_AESGCM" = "xno"],[AC_MSG_ERROR([cannot enable wolfSSH with AES-GCM disabled])])
+       AS_IF([test "x$ENABLED_ECC" = "xno"],[AC_MSG_ERROR([cannot enable wolfSSH with ECC disabled])])
+       AS_IF([test "x$ENABLED_SHA" = "xno"],[AC_MSG_ERROR([cannot enable wolfSSH with SHA-1 disabled])])
+       AS_IF([test "x$ENABLED_SHA512" = "xno"],[AC_MSG_ERROR([cannot enable wolfSSH with SHA-512/384 disabled])])
+      ])
+
 ################################################################################
 
 # OPTIMIZE FLAGS
@@ -3929,6 +3964,7 @@ echo "   * Renegotiation Indication:   $ENABLED_RENEGOTIATION_INDICATION"
 echo "   * Secure Renegotiation:       $ENABLED_SECURE_RENEGOTIATION"
 echo "   * All TLS Extensions:         $ENABLED_TLSX"
 echo "   * PKCS#7                      $ENABLED_PKCS7"
+echo "   * wolfSSH                     $ENABLED_WOLFSSH"
 echo "   * wolfSCEP                    $ENABLED_WOLFSCEP"
 echo "   * Secure Remote Password      $ENABLED_SRP"
 echo "   * Small Stack:                $ENABLED_SMALL_STACK"
