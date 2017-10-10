@@ -67,7 +67,6 @@ WOLFSSL_API int wolfSSL_SetLoggingCb(wolfSSL_Logging_cb log_function);
             #define __func__ NULL
         #else
             #define __func__ __FUNCTION__
-            #define ALEX_INDICATOR 1
         #endif
     #endif
 

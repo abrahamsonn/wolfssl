@@ -2496,9 +2496,6 @@ int wolfSSL_shutdown(WOLFSSL* ssl)
                                       !ssl->options.sentNotify) {
             ssl->error = SendAlert(ssl, alert_warning, close_notify);
             if (ssl->error < 0) {
-#ifdef ALEX_INDICATOR
-                printf("ALEX_INDICATOR = %d\n", (int) ALEX_INDICATOR);
-#endif
 
                 WOLFSSL_ERROR(ssl->error);
                 return SSL_FATAL_ERROR;
