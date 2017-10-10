@@ -5066,12 +5066,7 @@ static void TLSX_KeyShare_FreeAll(KeyShareEntry* list, void* heap)
             }
             else
 #endif
-#ifdef HAVE_ECC
-        /* The definition for wc_ecc_free is wrapped inside of an   *
-         * "ifdef HAVE_ECC", so this just prevents undefined        *
-         * behavior.                                                */
                 wc_ecc_free((ecc_key*)(current->key));
-#endif
         }
         XFREE(current->key, heap, DYNAMIC_TYPE_PRIVATE_KEY);
         XFREE(current->ke, heap, DYNAMIC_TYPE_PUBLIC_KEY);
@@ -7685,7 +7680,8 @@ int TLSX_PopulateExtensions(WOLFSSL* ssl, byte isServer)
                 ret = TLSX_PreSharedKey_Use(ssl,
                         (byte*)ssl->arrays->client_identity,
                         (word16)XSTRLEN(ssl->arrays->client_identity),
-                        0, ssl->specs.mac_algorithm,
+                        0,
+                        ssl->specs.mac_algorithm,
                         cipherSuite0,
                         cipherSuite,
                         0,
