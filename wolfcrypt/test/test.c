@@ -5055,9 +5055,6 @@ int aes_test(void)
         if (XMEMCMP(cipher, ctr128Cipher, sizeof(oddCipher)))
             return -4216;
 
-    /* test not supported on STM32 crypto HW or PIC32MZ HW */
-#if !defined(STM32F2_CRYPTO) && !defined(STM32F4_CRYPTO) && \
-    !defined(WOLFSSL_PIC32MZ_CRYPT)
         /* and an additional 9 bytes to reuse tmp left buffer */
         ret = wc_AesCtrEncrypt(&enc, cipher, ctrPlain, sizeof(oddCipher));
         if (ret != 0) {
@@ -5073,7 +5070,6 @@ int aes_test(void)
 
         if (XMEMCMP(cipher, oddCipher, sizeof(oddCipher)))
             return -4218;
-#endif
 
         /* 192 bit key */
         wc_AesSetKeyDirect(&enc, ctr192Key, sizeof(ctr192Key),
@@ -5430,8 +5426,7 @@ int aesgcm_test(void)
 
     /* FIPS, QAT and STM32F2/4 HW Crypto only support 12-byte IV */
 #if !defined(HAVE_FIPS) && !defined(HAVE_INTEL_QA) && \
-        !defined(STM32F2_CRYPTO) && !defined(STM32F4_CRYPTO) && \
-        !defined(WOLFSSL_PIC32MZ_CRYPT) && \
+        !defined(STM32_CRYPTO) && !defined(WOLFSSL_PIC32MZ_CRYPT) && \
         !defined(WOLFSSL_XILINX_CRYPT)
 
     #define ENABLE_NON_12BYTE_IV_TEST
@@ -5479,7 +5474,7 @@ int aesgcm_test(void)
     byte resultP[sizeof(p)];
     byte resultC[sizeof(p)];
     int  result;
-#if !defined(HAVE_FIPS) && !defined(STM32F2_CRYPTO) && !defined(STM32F4_CRYPTO)
+#if !defined(HAVE_FIPS) && !defined(STM32_CRYPTO)
     int  ivlen;
 #endif
     int  alen, plen;
@@ -5560,7 +5555,7 @@ int aesgcm_test(void)
         return -4309;
 #endif /* BENCH_AESGCM_LARGE */
 
-#if !defined(HAVE_FIPS) && !defined(STM32F2_CRYPTO) && !defined(STM32F4_CRYPTO)
+#if !defined(HAVE_FIPS) && !defined(STM32_CRYPTO)
     /* Variable IV length test */
     for (ivlen=0; ivlen<(int)sizeof(k1); ivlen++) {
          /* AES-GCM encrypt and decrypt both use AES encrypt internally */
@@ -6168,10 +6163,10 @@ int camellia_test(void)
                     return testVectors[i].errorCode;
                 break;
             case CAM_CBC_DEC:
-                ret = wc_CamelliaCbcDecrypt(&cam, out, testVectors[i].ciphertext,
-                                                           CAMELLIA_BLOCK_SIZE);
+                ret = wc_CamelliaCbcDecrypt(&cam, out,
+                                testVectors[i].ciphertext, CAMELLIA_BLOCK_SIZE);
                 if (ret != 0 || XMEMCMP(out, testVectors[i].plaintext,
-                                                            CAMELLIA_BLOCK_SIZE))
+                                                           CAMELLIA_BLOCK_SIZE))
                     return testVectors[i].errorCode;
                 break;
             default:
@@ -7958,8 +7953,8 @@ int rsa_test(void)
     #endif
             if (ret >= 0) {
                 ret = wc_RsaPrivateDecrypt_ex(out, idx, plain, plainSz, &key,
-                   WC_RSA_OAEP_PAD, WC_HASH_TYPE_SHA256, WC_MGF1SHA256,
-                   in, inLen);
+                    WC_RSA_OAEP_PAD, WC_HASH_TYPE_SHA256, WC_MGF1SHA256,
+                    in, inLen);
             }
         } while (ret == WC_PENDING_E);
         if (ret > 0) { /* should fail */
