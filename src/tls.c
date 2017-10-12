@@ -7686,6 +7686,7 @@ int TLSX_PopulateExtensions(WOLFSSL* ssl, byte isServer)
                         cipherSuite,
                         0,
                         NULL);
+
                 if (ret != 0)
                     return ret;
 
