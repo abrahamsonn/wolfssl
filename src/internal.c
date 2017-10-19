@@ -19809,20 +19809,32 @@ int SendCertificateVerify(WOLFSSL* ssl)
         #endif
 
         #ifndef NO_OLD_TLS
-            #ifndef NO_SHA
-                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
-                    /* old tls default */
-                    SetDigest(ssl, sha_mac);
-                #endif
+          #ifndef NO_SHA
+            #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
+            /* old tls default */
+            SetDigest(ssl, sha_mac);
             #endif
-        #else
-            #ifndef NO_SHA256
-                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
-                    /* new tls default */
-                    SetDigest(ssl, sha256_mac);
-                #endif
+          #endif
+        #else /* NO_OLD_TLS is defined */
+          #ifndef NO_SHA256
+            #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
+            /* new tls default */
+            SetDigest(ssl, sha256_mac);
             #endif
+          #endif
         #endif /* !NO_OLD_TLS */
+
+        /* If HAVE_ECC is undefined and NO_DH and/or NO_RSA are defined *
+         * then bypass SetDigest completely                             */
+        #if !( defined(HAVE_ECC) || (!defined(NO_DH) && !defined(NO_RSA)) )
+            #ifdef WOLFSSL_SHA384
+            ssl->buffers.digest.buffer = ssl->hsHashes->certHashes.sha384;
+            ssl->buffers.digest.length = SHA384_DIGEST_SIZE;
+            #elif defined(WOLFSSL_SHA512)
+            ssl->buffers.digest.buffer = ssl->hsHashes->certHashes.sha512;
+            ssl->buffers.digest.length = SHA512_DIGEST_SIZE;
+            #endif
+        #endif /* !HAVE_ECC && (NO_DH || NO_RSA) */
 
             if (ssl->hsType == DYNAMIC_TYPE_RSA) {
         #ifdef WC_RSA_PSS
