@@ -18700,26 +18700,28 @@ int SendClientKeyExchange(WOLFSSL* ssl)
             #endif /* HAVE_PK_CALLBACKS */
 
                 #ifdef HAVE_CURVE25519
-                    #if !defined(NO_DH) || defined(HAVE_ECC)
-                        if (ssl->peerX25519KeyPresent) {
-                            if (!ssl->peerX25519Key ||
-                                    !ssl->peerX25519Key->dp) {
-                                ERROR_OUT(NO_PEER_KEY, exit_scke);
-                            }
-
-                            /* create private key */
-                            ssl->hsType = DYNAMIC_TYPE_CURVE25519;
-                            ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
-                            if (ret != 0) {
-                                goto exit_scke;
-                            }
-
-                            ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
-                                                ssl->peerX25519Key);
-
-                            break;
+                    if (ssl->peerX25519KeyPresent) {
+                        if (!ssl->peerX25519Key ||
+                                !ssl->peerX25519Key->dp) {
+                            ERROR_OUT(NO_PEER_KEY, exit_scke);
                         }
-                    #endif /* !defined(NO_DH) || defined(HAVE_ECC) */
+
+                        /* create private key */
+                        ssl->hsType = DYNAMIC_TYPE_CURVE25519;
+                        ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
+                        if (ret != 0) {
+                            goto exit_scke;
+                        }
+
+                    #if !defined(NO_DH) || defined(HAVE_ECC)
+                        ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
+                                            ssl->peerX25519Key);
+                    #else
+                        /*?*/
+                    #endif
+
+                        break;
+                    }
                 #endif
                 #ifdef HAVE_ECC
                     if (ssl->specs.static_ecdh) {
@@ -19201,11 +19203,9 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                             NULL
                         #endif
                         );
-
                         if (ret != 0) {
                             goto exit_scke;
                         }
-
                         break;
                     }
                 #endif
@@ -19825,7 +19825,8 @@ int SendCertificateVerify(WOLFSSL* ssl)
         #endif /* !NO_OLD_TLS */
 
         /* If HAVE_ECC is undefined and NO_DH and/or NO_RSA are defined *
-         * then bypass SetDigest completely                             */
+         * then bypass SetDigest completely and directly assign values  *
+         * to ssl attributes                                            */
         #if !( defined(HAVE_ECC) || (!defined(NO_DH) && !defined(NO_RSA)) )
             #ifdef WOLFSSL_SHA384
             ssl->buffers.digest.buffer = ssl->hsHashes->certHashes.sha384;
@@ -19865,13 +19866,13 @@ int SendCertificateVerify(WOLFSSL* ssl)
                     (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
             }
             #endif
-        #else /* HAVE_ECC is undefined and either NO_DH or NO_RSA is defined */
+        #else
             #ifndef NO_OLD_TLS
-                XMEMCPY(ssl->buffers.sig.buffer,
-                    (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
+            XMEMCPY(ssl->buffers.sig.buffer,
+               (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
             #else
-                XMEMCPY(ssl->buffers.sig.buffer,
-                        (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
+            XMEMCPY(ssl->buffers.sig.buffer,
+                (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
             #endif
         #endif /* defined(HAVE_ECC) || (!defined(NO_DH) && !defined(NO_RSA)) */
 
@@ -19880,14 +19881,17 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 ssl->buffers.sig.length = FINISHED_SZ;
                 args->sigSz = ENCRYPT_LEN;
 
+                if (IsAtLeastTLSv1_2(ssl)) {
+                    ssl->buffers.sig.length = wc_EncodeSignature(
+                            ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
+                            ssl->buffers.digest.length,
                 #if !defined(NO_DH) || defined(HAVE_ECC)
-                    if (IsAtLeastTLSv1_2(ssl)) {
-                        ssl->buffers.sig.length = wc_EncodeSignature(
-                                ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
-                                ssl->buffers.digest.length,
-                                TypeHash(ssl->suites->hashAlgo));
-                    }
+                            TypeHash(ssl->suites->hashAlgo);
+                #else
+                            0
                 #endif
+                            );
+                }
 
                 /* prepend hdr */
                 c16toa(args->length, args->verify + args->extraSz);
