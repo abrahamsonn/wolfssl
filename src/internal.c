@@ -20742,19 +20742,16 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                                     goto exit_sske;
                                 }
                             }
-
-                            #if !defined(NO_DH) || defined(HAVE_ECC)
-                                if (ssl->eccTempKeyPresent == 0) {
-                                    ret = X25519MakeKey(ssl,
-                                            (curve25519_key*)ssl->eccTempKey,
-                                            NULL);
-                                    if (ret == 0 || ret == WC_PENDING_E) {
-                                        ssl->eccTempKeyPresent =
-                                            DYNAMIC_TYPE_CURVE25519;
-                                    }
+                            /*#if !defined(NO_DH) || defined(HAVE_ECC)*/
+                            if (ssl->eccTempKeyPresent == 0) {
+                                ret = X25519MakeKey(ssl,
+                                        (curve25519_key*)ssl->eccTempKey, NULL);
+                                if (ret == 0 || ret == WC_PENDING_E) {
+                                    ssl->eccTempKeyPresent =
+                                        DYNAMIC_TYPE_CURVE25519;
                                 }
-                                break;
-                            #endif
+                            }
+                            break;
                         }
                     #endif
                     #ifdef HAVE_ECC
@@ -23174,13 +23171,16 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                             SetDigest(ssl, args->hashAlgo);
                         #endif
 
-                        #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
-                           && !defined(NO_RSA)
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
-                                TypeHash(args->hashAlgo));
-                        #endif
+                            #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
+                               && !defined(NO_RSA)
+                                TypeHash(args->hashAlgo)
+                            #else
+                                0
+                            #endif
+                                );
 
                             if (args->sendSz != args->sigSz || !args->output ||
                                 XMEMCMP(args->output, encodedSig,
