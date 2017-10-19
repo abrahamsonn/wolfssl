@@ -18714,12 +18714,12 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                                 goto exit_scke;
                             }
 
-                            ret = X25519MakeKey(ssl,
-                                                (curve25519_key*)ssl->hsKey,
+                            ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
                                                 ssl->peerX25519Key);
+
                             break;
                         }
-                    #endif
+                    #endif /* !defined(NO_DH) || defined(HAVE_ECC) */
                 #endif
                 #ifdef HAVE_ECC
                     if (ssl->specs.static_ecdh) {
@@ -19188,23 +19188,26 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                 #endif
 
                 #ifdef HAVE_CURVE25519
-                    #if !defined(NO_DH) || defined(HAVE_ECC)
-                        if (ssl->peerX25519KeyPresent) {
-                            ret = X25519SharedSecret(ssl,
-                                (curve25519_key*)ssl->hsKey, ssl->peerX25519Key,
-                                args->encSecret + OPAQUE8_LEN, &args->encSz,
-                                ssl->arrays->preMasterSecret,
-                                &ssl->arrays->preMasterSz,
-                                WOLFSSL_CLIENT_END,
-                            #ifdef HAVE_PK_CALLBACKS
-                                ssl->EccSharedSecretCtx
-                            #else
-                                NULL
-                            #endif
-                            );
-                            break;
+                    if (ssl->peerX25519KeyPresent) {
+                        ret = X25519SharedSecret(ssl,
+                            (curve25519_key*)ssl->hsKey, ssl->peerX25519Key,
+                            args->encSecret + OPAQUE8_LEN, &args->encSz,
+                            ssl->arrays->preMasterSecret,
+                            &ssl->arrays->preMasterSz,
+                            WOLFSSL_CLIENT_END,
+                        #ifdef HAVE_PK_CALLBACKS
+                            ssl->EccSharedSecretCtx
+                        #else
+                            NULL
+                        #endif
+                        );
+
+                        if (ret != 0) {
+                            goto exit_scke;
                         }
-                    #endif
+
+                        break;
+                    }
                 #endif
                 #ifdef HAVE_ECC
                     peerKey = (ssl->specs.static_ecdh) ?
@@ -19842,20 +19845,23 @@ int SendCertificateVerify(WOLFSSL* ssl)
                              args->verify);
                 args->extraSz = HASH_SIG_SIZE;
                 SetDigest(ssl, ssl->suites->hashAlgo);
-            } else {
-        #endif
-
+            }
             #ifndef NO_OLD_TLS
-
-                /* if old TLS load MD5 and SHA hash as value to sign */
+            else {
+                /* if old TLS, load MD5 or SHA hash as value to sign */
                 XMEMCPY(ssl->buffers.sig.buffer,
                     (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
-
-            #endif
-
-        #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
             }
-        #endif
+            #endif
+        #else /* HAVE_ECC is undefined and either NO_DH or NO_RSA is defined */
+            #ifndef NO_OLD_TLS
+                XMEMCPY(ssl->buffers.sig.buffer,
+                    (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
+            #else
+                XMEMCPY(ssl->buffers.sig.buffer,
+                        (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
+            #endif
+        #endif /* defined(HAVE_ECC) || (!defined(NO_DH) && !defined(NO_RSA)) */
 
         #ifndef NO_RSA
             if (args->sigAlgo == rsa_sa_algo) {
