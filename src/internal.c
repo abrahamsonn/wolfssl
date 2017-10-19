@@ -19886,7 +19886,7 @@ int SendCertificateVerify(WOLFSSL* ssl)
                             ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
                             ssl->buffers.digest.length,
                 #if !defined(NO_DH) || defined(HAVE_ECC)
-                            TypeHash(ssl->suites->hashAlgo);
+                            TypeHash(ssl->suites->hashAlgo)
                 #else
                             0
                 #endif
