@@ -24330,24 +24330,22 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                         (void)private_key;
 
                     #ifdef HAVE_CURVE25519
-                        #if !defined(NO_DH) || defined(HAVE_ECC)
-                            if (ssl->ecdhCurveOID == ECC_X25519_OID) {
-                                ret = X25519SharedSecret(ssl,
-                                    (curve25519_key*)private_key,
-                                    ssl->peerX25519Key,
-                                    input + args->idx, &args->length,
-                                    ssl->arrays->preMasterSecret,
-                                    &ssl->arrays->preMasterSz,
-                                    WOLFSSL_SERVER_END,
-                                #ifdef HAVE_PK_CALLBACKS
-                                    ssl->EccSharedSecretCtx
-                                #else
-                                    NULL
-                                #endif
-                                );
-                                break;
-                            }
-                        #endif
+                        if (ssl->ecdhCurveOID == ECC_X25519_OID) {
+                            ret = X25519SharedSecret(ssl,
+                                (curve25519_key*)private_key,
+                                ssl->peerX25519Key,
+                                input + args->idx, &args->length,
+                                ssl->arrays->preMasterSecret,
+                                &ssl->arrays->preMasterSz,
+                                WOLFSSL_SERVER_END,
+                            #ifdef HAVE_PK_CALLBACKS
+                                ssl->EccSharedSecretCtx
+                            #else
+                                NULL
+                            #endif
+                            );
+                            break;
+                        }
                     #endif
                     #ifdef HAVE_ECC
                         if (ssl->specs.static_ecdh) {
