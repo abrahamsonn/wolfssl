@@ -17190,17 +17190,16 @@ static int DoServerKeyExchange(WOLFSSL* ssl, const byte* input,
                                word32* inOutIdx, word32 size)
 {
     int ret = 0;
-    (void)input;
-    (void)size;
 #ifdef WOLFSSL_ASYNC_CRYPT
     DskeArgs* args = (DskeArgs*)ssl->async.args;
     typedef char args_test[sizeof(ssl->async.args) >= sizeof(*args) ? 1 : -1];
     (void)sizeof(args_test);
 #else
-    printf("WOLFSSL_ASYNC_CRYPT undefined\n");
-
     DskeArgs  args[1];
 #endif
+
+    (void)input;
+    (void)size;
 
     WOLFSSL_ENTER("DoServerKeyExchange");
 
