@@ -17197,6 +17197,8 @@ static int DoServerKeyExchange(WOLFSSL* ssl, const byte* input,
     typedef char args_test[sizeof(ssl->async.args) >= sizeof(*args) ? 1 : -1];
     (void)sizeof(args_test);
 #else
+    printf("WOLFSSL_ASYNC_CRYPT undefined\n");
+
     DskeArgs  args[1];
 #endif
 
@@ -18713,12 +18715,8 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                             goto exit_scke;
                         }
 
-                    #if !defined(NO_DH) || defined(HAVE_ECC)
                         ret = X25519MakeKey(ssl, (curve25519_key*)ssl->hsKey,
                                             ssl->peerX25519Key);
-                    #else
-                        /*?*/
-                    #endif
 
                         break;
                     }
@@ -19555,6 +19553,9 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
     int      ret;
     int      keySz;
     word32   idx;
+    (void)idx;
+    (void)keySz;
+    (void)length;
 
     /* make sure private key exists */
     if (ssl->buffers.key == NULL || ssl->buffers.key->buffer == NULL) {
@@ -19643,6 +19644,7 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
 
     ssl->hsType = DYNAMIC_TYPE_ED25519;
     ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
+/* ret is undefined here if disable-ecc & disable-rsa & enable-dh are passed */
     if (ret != 0) {
         goto exit_dpk;
     }

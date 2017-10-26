@@ -2078,6 +2078,7 @@ int wc_CreatePKCS8Key(byte* out, word32* outSz, byte* key, word32 keySz,
 int wc_CheckPrivateKey(byte* key, word32 keySz, DecodedCert* der)
 {
     int ret;
+    (void)keySz;
 
     if (key == NULL || der == NULL) {
         return BAD_FUNC_ARG;
