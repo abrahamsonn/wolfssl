@@ -4857,6 +4857,7 @@ int ProcessBuffer(WOLFSSL_CTX* ctx, const unsigned char* buff,
 #endif
 
     (void)rsaKey;
+    (void)devId;
 
     if (used)
         *used = sz;     /* used bytes default to sz, PEM chain may shorten*/
