@@ -19846,25 +19846,24 @@ int SendCertificateVerify(WOLFSSL* ssl)
             else if (ssl->hsType == DYNAMIC_TYPE_ED25519)
                 args->sigAlgo = ed25519_sa_algo;
 
-        #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
             if (IsAtLeastTLSv1_2(ssl)) {
-                EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
-                             args->verify);
+                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
+                    EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
+                                 args->verify);
+                    SetDigest(ssl, ssl->suites->hashAlgo);
+                #else
+                    XMEMCPY(ssl->buffers.sig.buffer,
+                        (byte*)ssl->hsHashes->certHashes.sha256, FINISHED_SZ);
+                #endif
                 args->extraSz = HASH_SIG_SIZE;
-                SetDigest(ssl, ssl->suites->hashAlgo);
             }
-            #ifndef NO_OLD_TLS
+        #ifndef NO_OLD_TLS
             else {
-                /* if old TLS, load MD5 or SHA hash as value to sign */
+                /* if old TLS load MD5 and SHA hash as value to sign */
                 XMEMCPY(ssl->buffers.sig.buffer,
                     (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
             }
-            #endif
-        #else /* EncodeSigAlg is undefined, default to OLD_TLS behavior but *
-               * with sha256                                                */
-            XMEMCPY(ssl->buffers.sig.buffer,
-                (byte*)ssl->hsHashes->certHashes.sha256, FINISHED_SZ);
-        #endif /* defined(HAVE_ECC) || (!defined(NO_DH) && !defined(NO_RSA)) */
+        #endif
 
         #ifndef NO_RSA
             if (args->sigAlgo == rsa_sa_algo) {
