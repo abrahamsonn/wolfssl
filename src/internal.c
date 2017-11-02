@@ -19860,14 +19860,9 @@ int SendCertificateVerify(WOLFSSL* ssl)
                     (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
             }
             #endif
-        #else
-            #ifndef NO_OLD_TLS
+        #else /* EncodeSigAlg is undefined, default to encoding sha256 */
             XMEMCPY(ssl->buffers.sig.buffer,
-               (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
-            #else
-            XMEMCPY(ssl->buffers.sig.buffer,
-                (byte*)ssl->hsHashes->certHashes.md5, FINISHED_SZ);
-            #endif
+                (byte*)ssl->hsHashes->certHashes.sha256, FINISHED_SZ);
         #endif /* defined(HAVE_ECC) || (!defined(NO_DH) && !defined(NO_RSA)) */
 
         #ifndef NO_RSA
