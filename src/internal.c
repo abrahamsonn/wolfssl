@@ -19639,7 +19639,6 @@ int DecodePrivateKey(WOLFSSL *ssl, word16* length)
 
     ssl->hsType = DYNAMIC_TYPE_ED25519;
     ret = AllocKey(ssl, ssl->hsType, &ssl->hsKey);
-/* ret is undefined here if disable-ecc & disable-rsa & enable-dh are passed */
     if (ret != 0) {
         goto exit_dpk;
     }
