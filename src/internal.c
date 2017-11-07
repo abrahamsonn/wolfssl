@@ -20731,7 +20731,7 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                                     goto exit_sske;
                                 }
                             }
-                            /*#if !defined(NO_DH) || defined(HAVE_ECC)*/
+
                             if (ssl->eccTempKeyPresent == 0) {
                                 ret = X25519MakeKey(ssl,
                                         (curve25519_key*)ssl->eccTempKey, NULL);
@@ -23629,6 +23629,8 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
     #else
         DckeArgs  args[1];
     #endif
+
+        (void)size;
 
         WOLFSSL_ENTER("DoClientKeyExchange");
 
