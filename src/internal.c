@@ -19199,9 +19199,6 @@ int SendClientKeyExchange(WOLFSSL* ssl)
                             NULL
                         #endif
                         );
-                        if (ret != 0) {
-                            goto exit_scke;
-                        }
                         break;
                     }
                 #endif
