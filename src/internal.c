@@ -19854,8 +19854,7 @@ int SendCertificateVerify(WOLFSSL* ssl)
                     ssl->buffers.sig.length = wc_EncodeSignature(
                             ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
                             ssl->buffers.digest.length,
-                            TypeHash(ssl->suites->hashAlgo)
-                            );
+                            TypeHash(ssl->suites->hashAlgo));
                 }
 
                 /* prepend hdr */
@@ -23139,13 +23138,7 @@ static int DoSessionTicket(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
                             args->sigSz = wc_EncodeSignature(encodedSig,
                                 ssl->buffers.digest.buffer,
                                 ssl->buffers.digest.length,
-                            #if ( !defined(NO_DH) || defined(HAVE_ECC) ) \
-                               && !defined(NO_RSA)
-                                TypeHash(args->hashAlgo)
-                            #else
-                                0
-                            #endif
-                                );
+                                TypeHash(args->hashAlgo));
 
                             if (args->sendSz != args->sigSz || !args->output ||
                                 XMEMCMP(args->output, encodedSig,
