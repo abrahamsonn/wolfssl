@@ -4489,7 +4489,7 @@ static word16 TLSX_Cookie_GetSize(Cookie* cookie, byte msgType)
     if (msgType == client_hello || msgType == hello_retry_request)
         return OPAQUE16_LEN + cookie->len;
 
-    return (word16) SANITY_MSG_E;
+    return SANITY_MSG_E;
 }
 
 /* Writes the Cookie extension into the output buffer.

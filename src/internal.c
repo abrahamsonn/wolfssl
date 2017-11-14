@@ -19804,28 +19804,17 @@ int SendCertificateVerify(WOLFSSL* ssl)
             }
         #endif
 
-            #ifndef NO_OLD_TLS
-              #ifndef NO_SHA
-                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
-                    /* old tls default */
-                    SetDigest(ssl, sha_mac);
-                #else
-                    ssl->buffers.digest.buffer = ssl->hsHashes->certHashes.sha;
-                    ssl->buffers.digest.length = SHA_DIGEST_SIZE;
-                #endif
-              #endif
-            #else /* NO_OLD_TLS is defined */
-              #ifndef NO_SHA256
-                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
-                    /* new tls default */
-                    SetDigest(ssl, sha256_mac);
-                #else
-                    ssl->buffers.digest.buffer =
-                        ssl->hsHashes->certHashes.sha256;
-                    ssl->buffers.digest.length = SHA256_DIGEST_SIZE;
-                #endif
-              #endif
-            #endif /* !NO_OLD_TLS */
+    #ifndef NO_OLD_TLS
+        #ifndef NO_SHA
+            /* old tls default */
+            SetDigest(ssl, sha_mac);
+        #endif
+    #else
+        #ifndef NO_SHA256
+            /* new tls default */
+            SetDigest(ssl, sha256_mac);
+        #endif
+    #endif /* !NO_OLD_TLS */
 
             if (ssl->hsType == DYNAMIC_TYPE_RSA) {
         #ifdef WC_RSA_PSS
@@ -19843,14 +19832,9 @@ int SendCertificateVerify(WOLFSSL* ssl)
                 args->sigAlgo = ed25519_sa_algo;
 
             if (IsAtLeastTLSv1_2(ssl)) {
-                #if defined(HAVE_ECC) || ( !defined(NO_DH) && !defined(NO_RSA) )
-                    EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
-                                 args->verify);
-                    SetDigest(ssl, ssl->suites->hashAlgo);
-                #else
-                    XMEMCPY(ssl->buffers.sig.buffer,
-                        (byte*)ssl->hsHashes->certHashes.sha256, FINISHED_SZ);
-                #endif
+                EncodeSigAlg(ssl->suites->hashAlgo, args->sigAlgo,
+                             args->verify);
+                SetDigest(ssl, ssl->suites->hashAlgo);
                 args->extraSz = HASH_SIG_SIZE;
             }
         #ifndef NO_OLD_TLS
@@ -19870,11 +19854,7 @@ int SendCertificateVerify(WOLFSSL* ssl)
                     ssl->buffers.sig.length = wc_EncodeSignature(
                             ssl->buffers.sig.buffer, ssl->buffers.digest.buffer,
                             ssl->buffers.digest.length,
-                #if !defined(NO_DH) || defined(HAVE_ECC)
                             TypeHash(ssl->suites->hashAlgo)
-                #else
-                            0
-                #endif
                             );
                 }
 

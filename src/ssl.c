@@ -17550,9 +17550,9 @@ int wolfSSL_i2d_SSL_SESSION(WOLFSSL_SESSION* sess, unsigned char** p)
         XMEMCPY(data + idx, sess->sessionID, sess->sessionIDSz);
         idx += sess->sessionIDSz;
         XMEMCPY(data + idx, sess->masterSecret, SECRET_LEN); idx += SECRET_LEN;
-        data[idx++] = (unsigned char) sess->haveEMS;
+        data[idx++] = (byte) sess->haveEMS;
 #ifdef SESSION_CERTS
-        data[idx++] = (unsigned char) sess->chain.count;
+        data[idx++] = (byte) sess->chain.count;
         for (i = 0; i < sess->chain.count; i++) {
             c16toa((word16) sess->chain.certs[i].length, data + idx);
             idx += OPAQUE16_LEN;
