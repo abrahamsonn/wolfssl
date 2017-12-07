@@ -301,7 +301,6 @@
     <ClCompile Include="wolfcrypt\src\ecc.c" />
     <ClCompile Include="wolfcrypt\src\ed25519.c" />
     <ClCompile Include="wolfcrypt\src\error.c" />
-    <ClCompile Include="wolfcrypt\src\fe_x25519_x64.i"/>
     <ClCompile Include="wolfcrypt\src\fe_operations.c" />
     <ClCompile Include="wolfcrypt\src\ge_low_mem.c" />
     <ClCompile Include="wolfcrypt\src\ge_operations.c" />
@@ -334,6 +333,7 @@
     <ClCompile Include="wolfcrypt\src\wc_port.c" />
     <ClCompile Include="wolfcrypt\src\wolfmath.c" />
     <ClCompile Include="wolfcrypt\src\wolfevent.c" />
+    <ClCompile Include="wolfcrypt\src\fe_x25519_x64.i"/>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="wolfcrypt\src\aes_asm.asm">
