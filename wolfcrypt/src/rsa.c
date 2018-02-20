@@ -2389,7 +2389,8 @@ int wc_CheckProbablePrime(const byte* pRaw, word32 pRawSz,
 int wc_MakeRsaKey(RsaKey* key, int size, long e, WC_RNG* rng)
 {
     mp_int p, q, tmp1, tmp2, tmp3;
-    int err, i, failCount, primeSz, isPrime;
+    int err, i, failCount, primeSz;
+    int isPrime = 0;
     byte* buf = NULL;
 
     if (key == NULL || rng == NULL)
@@ -2471,13 +2472,8 @@ int wc_MakeRsaKey(RsaKey* key, int size, long e, WC_RNG* rng)
         } while (err == MP_OKAY && !isPrime && i < failCount);
     }
 
-    //if (err == MP_OKAY && !isPrime)
-    //    err = PRIME_GEN_E;
-    if (err == MP_OKAY) {
-        if (!isPrime) {
-            err = PRIME_GEN_E;
-        }
-    }
+    if (err == MP_OKAY && !isPrime)
+        err = PRIME_GEN_E;
 
     /* make q */
     if (err == MP_OKAY) {
