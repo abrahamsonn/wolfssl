@@ -2471,8 +2471,13 @@ int wc_MakeRsaKey(RsaKey* key, int size, long e, WC_RNG* rng)
         } while (err == MP_OKAY && !isPrime && i < failCount);
     }
 
-    if (err == MP_OKAY && !isPrime)
-        err = PRIME_GEN_E;
+    //if (err == MP_OKAY && !isPrime)
+    //    err = PRIME_GEN_E;
+    if (err == MP_OKAY) {
+        if (!isPrime) {
+            err = PRIME_GEN_E;
+        }
+    }
 
     /* make q */
     if (err == MP_OKAY) {
