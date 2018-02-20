@@ -97,6 +97,7 @@ enum {
     ASN_DH_KEY_E       = -158,  /* ASN key init error, invalid input */
     ASN_NTRU_KEY_E     = -159,  /* ASN ntru key decode error, invalid input */
     ASN_CRIT_EXT_E     = -160,  /* ASN unsupported critical extension */
+    ASN_ALT_NAME_E     = -161,  /* ASN alternate name error */
 
     ECC_BAD_ARG_E      = -170,  /* ECC input argument of wrong type */
     ASN_ECC_KEY_E      = -171,  /* ASN ECC bad input */
@@ -191,8 +192,13 @@ enum {
 
     ECC_PRIVATEONLY_E   = -246,  /* Invalid use of private only ECC key*/
     EXTKEYUSAGE_E       = -247,  /* Bad Extended Key Usage value */
+    WC_HW_E             = -248,  /* Error with hardware crypto use */
+    WC_HW_WAIT_E        = -249,  /* Hardware waiting on resource */
 
-    WC_LAST_E           = -247,  /* Update this to indicate last error */
+    PSS_SALTLEN_E       = -250,  /* PSS length of salt is to long for hash */
+    PRIME_GEN_E         = -251,  /* Failure finding a prime. */
+
+    WC_LAST_E           = -251,  /* Update this to indicate last error */
     MIN_CODE_E          = -300   /* errors -101 - -299 */
 
     /* add new companion error id strings for any new error codes

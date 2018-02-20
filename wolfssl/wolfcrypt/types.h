@@ -233,8 +233,7 @@
 	#elif !defined(MICRIUM_MALLOC) && !defined(EBSNET) \
 	        && !defined(WOLFSSL_SAFERTOS) && !defined(FREESCALE_MQX) \
 	        && !defined(FREESCALE_KSDK_MQX) && !defined(FREESCALE_FREE_RTOS) \
-            && !defined(WOLFSSL_LEANPSK) && !defined(FREERTOS) && !defined(FREERTOS_TCP)\
-            && !defined(WOLFSSL_uITRON4)
+            && !defined(WOLFSSL_LEANPSK) && !defined(WOLFSSL_uITRON4)
 	    /* default C runtime, can install different routines at runtime via cbs */
 	    #include <wolfssl/wolfcrypt/memory.h>
         #ifdef WOLFSSL_STATIC_MEMORY
@@ -247,7 +246,7 @@
 				#define XFREE(p, h, t)       {void* xp = (p); if((xp)) wolfSSL_Free((xp), (h), (t));}
 				#define XREALLOC(p, n, h, t) wolfSSL_Realloc((p), (n), (h), (t))
             #endif /* WOLFSSL_DEBUG_MEMORY */
-        #else
+        #elif !defined(FREERTOS) && !defined(FREERTOS_TCP)
             #ifdef WOLFSSL_DEBUG_MEMORY
 				#define XMALLOC(s, h, t)     ((void)h, (void)t, wolfSSL_Malloc((s), __func__, __LINE__))
 				#define XFREE(p, h, t)       {void* xp = (p); if((xp)) wolfSSL_Free((xp), __func__, __LINE__);}
@@ -327,6 +326,12 @@
         /* snprintf is used in asn.c for GetTimeString, PKCS7 test, and when
            debugging is turned on */
         #ifndef USE_WINDOWS_API
+            #if defined(NO_FILESYSTEM) && defined(OPENSSL_EXTRA) && \
+               !defined(NO_STDIO_FILESYSTEM)
+                /* case where stdio is not included else where but is needed for
+                 * snprintf */
+                #include <stdio.h>
+            #endif
             #define XSNPRINTF snprintf
         #else
             #define XSNPRINTF _snprintf
@@ -348,9 +353,18 @@
         #endif
 	#endif
 
+    #if !defined(NO_FILESYSTEM) && defined(OPENSSL_EXTRA) && \
+        !defined(NO_STDIO_FILESYSTEM)
+        #ifndef XGETENV
+            #include <stdlib.h>
+            #define XGETENV getenv
+        #endif
+    #endif /* OPENSSL_EXTRA */
+
 	#ifndef CTYPE_USER
 	    #include <ctype.h>
-	    #if defined(HAVE_ECC) || defined(HAVE_OCSP) || defined(WOLFSSL_KEY_GEN)
+	    #if defined(HAVE_ECC) || defined(HAVE_OCSP) || \
+            defined(WOLFSSL_KEY_GEN) || !defined(NO_DSA)
 	        #define XTOUPPER(c)     toupper((c))
 	        #define XISALPHA(c)     isalpha((c))
 	    #endif
@@ -449,6 +463,8 @@
         DYNAMIC_TYPE_QSH          = 86,
         DYNAMIC_TYPE_SALT         = 87,
         DYNAMIC_TYPE_HASH_TMP     = 88,
+        DYNAMIC_TYPE_BLOB         = 89,
+        DYNAMIC_TYPE_NAME_ENTRY   = 90,
 	};
 
 	/* max error buffer string size */
@@ -587,6 +603,29 @@
     #else
         #define EXIT_TEST(ret) return ret
     #endif
+
+
+    #if defined(__GNUC__)
+        #define WOLFSSL_PACK __attribute__ ((packed))
+    #else
+        #define WOLFSSL_PACK
+    #endif
+
+    #ifndef __GNUC_PREREQ
+        #if defined(__GNUC__) && defined(__GNUC_MINOR__)
+            #define __GNUC_PREREQ(maj, min) \
+                ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+        #else
+            #define __GNUC_PREREQ(maj, min) (0) /* not GNUC */
+        #endif
+    #endif
+
+    #if defined(__GNUC__)
+        #define WC_NORETURN __attribute__((noreturn))
+    #else
+        #define WC_NORETURN
+    #endif
+
 
 	#ifdef __cplusplus
 	    }   /* extern "C" */

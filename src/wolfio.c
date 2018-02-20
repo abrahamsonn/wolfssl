@@ -88,7 +88,7 @@ static INLINE int TranslateReturnCode(int old, int sd)
     return old;
 }
 
-static INLINE int LastError(void)
+static INLINE int wolfSSL_LastError(void)
 {
 #ifdef USE_WINDOWS_API
     return WSAGetLastError();
@@ -100,6 +100,85 @@ static INLINE int LastError(void)
 }
 
 #endif /* USE_WOLFSSL_IO || HAVE_HTTP_CLIENT */
+
+
+#ifdef OPENSSL_EXTRA
+/* Use the WOLFSSL read BIO for receiving data. This is set by the fucntion wolfSSL_set_bio and can also be set by wolfSSL_SetIORecv.
+ *
+ * ssl  WOLFSSL struct passed in that has this function set as the receive callback.
+ * buf  buffer to fill with data read
+ * sz   size of buf buffer
+ * ctx  a user set context
+ *
+ * returns the amount of data read or want read. See WOLFSSL_CBIO_ERR_* values.
+ */
+int BioReceive(WOLFSSL* ssl, char* buf, int sz, void* ctx)
+{
+    int recvd = WOLFSSL_CBIO_ERR_GENERAL;
+
+    WOLFSSL_ENTER("BioReceive");
+
+    if (ssl->biord == NULL) {
+        WOLFSSL_MSG("WOLFSSL biord not set");
+        return WOLFSSL_CBIO_ERR_GENERAL;
+    }
+
+    switch (ssl->biord->type) {
+        case WOLFSSL_BIO_MEMORY:
+            if (wolfSSL_BIO_ctrl_pending(ssl->biord) == 0) {
+               return WOLFSSL_CBIO_ERR_WANT_READ;
+            }
+            recvd = wolfSSL_BIO_read(ssl->biord, buf, sz);
+            if (recvd <= 0) {
+                return WOLFSSL_CBIO_ERR_GENERAL;
+            }
+            break;
+
+       default:
+            WOLFSSL_MSG("This BIO type is unknown / unsupported");
+            return WOLFSSL_CBIO_ERR_GENERAL;
+    }
+
+    (void)ctx;
+    return recvd;
+}
+
+
+/* Use the WOLFSSL write BIO for sending data. This is set by the fucntion wolfSSL_set_bio and can also be set by wolfSSL_SetIOSend.
+ *
+ * ssl  WOLFSSL struct passed in that has this function set as the send callback.
+ * buf  buffer with data to write out
+ * sz   size of buf buffer
+ * ctx  a user set context
+ *
+ * returns the amount of data sent or want send. See WOLFSSL_CBIO_ERR_* values.
+ */
+int BioSend(WOLFSSL* ssl, char *buf, int sz, void *ctx)
+{
+    int sent = WOLFSSL_CBIO_ERR_GENERAL;
+
+    if (ssl->biowr == NULL) {
+        WOLFSSL_MSG("WOLFSSL biowr not set\n");
+        return WOLFSSL_CBIO_ERR_GENERAL;
+    }
+
+    switch (ssl->biowr->type) {
+        case WOLFSSL_BIO_MEMORY:
+            sent = wolfSSL_BIO_write(ssl->biowr, buf, sz);
+            if (sent < 0) {
+                return WOLFSSL_CBIO_ERR_GENERAL;
+            }
+            break;
+
+        default:
+            WOLFSSL_MSG("This BIO type is unknown / unsupported");
+            return WOLFSSL_CBIO_ERR_GENERAL;
+    }
+    (void)ctx;
+
+    return sent;
+}
+#endif
 
 
 #ifdef USE_WOLFSSL_IO
@@ -135,7 +214,7 @@ int EmbedReceive(WOLFSSL *ssl, char *buf, int sz, void *ctx)
 
     recvd = wolfIO_Recv(sd, buf, sz, ssl->rflags);
     if (recvd < 0) {
-        int err = LastError();
+        int err = wolfSSL_LastError();
         WOLFSSL_MSG("Embed Receive error");
 
         if (err == SOCKET_EWOULDBLOCK || err == SOCKET_EAGAIN) {
@@ -187,7 +266,7 @@ int EmbedSend(WOLFSSL* ssl, char *buf, int sz, void *ctx)
 
     sent = wolfIO_Send(sd, buf, sz, ssl->wflags);
     if (sent < 0) {
-        int err = LastError();
+        int err = wolfSSL_LastError();
         WOLFSSL_MSG("Embed Send error");
 
         if (err == SOCKET_EWOULDBLOCK || err == SOCKET_EAGAIN) {
@@ -262,7 +341,7 @@ int EmbedReceiveFrom(WOLFSSL *ssl, char *buf, int sz, void *ctx)
     recvd = TranslateReturnCode(recvd, sd);
 
     if (recvd < 0) {
-        err = LastError();
+        err = wolfSSL_LastError();
         WOLFSSL_MSG("Embed Receive From error");
 
         if (err == SOCKET_EWOULDBLOCK || err == SOCKET_EAGAIN) {
@@ -325,7 +404,7 @@ int EmbedSendTo(WOLFSSL* ssl, char *buf, int sz, void *ctx)
     sent = TranslateReturnCode(sent, sd);
 
     if (sent < 0) {
-        err = LastError();
+        err = wolfSSL_LastError();
         WOLFSSL_MSG("Embed Send To error");
 
         if (err == SOCKET_EWOULDBLOCK || err == SOCKET_EAGAIN) {
@@ -373,7 +452,7 @@ int EmbedReceiveFromMcast(WOLFSSL *ssl, char *buf, int sz, void *ctx)
     recvd = TranslateReturnCode(recvd, sd);
 
     if (recvd < 0) {
-        err = LastError();
+        err = wolfSSL_LastError();
         WOLFSSL_MSG("Embed Receive From error");
 
         if (err == SOCKET_EWOULDBLOCK || err == SOCKET_EAGAIN) {
@@ -933,7 +1012,7 @@ static int wolfIO_HttpProcessResponseBuf(int sfd, byte **recvBuf, int* recvBufSz
     return 0;
 }
 
-int wolfIO_HttpProcessResponse(int sfd, const char* appStr,
+int wolfIO_HttpProcessResponse(int sfd, const char** appStrList,
     byte** respBuf, byte* httpBuf, int httpBufSz, int dynType, void* heap)
 {
     int result = 0;
@@ -1016,9 +1095,21 @@ int wolfIO_HttpProcessResponse(int sfd, const char* appStr,
                 case phr_have_length:
                 case phr_have_type:
                     if (XSTRNCASECMP(start, "Content-Type:", 13) == 0) {
+                        int i;
+
                         start += 13;
                         while (*start == ' ' && *start != '\0') start++;
-                        if (XSTRNCASECMP(start, appStr, XSTRLEN(appStr)) != 0) {
+
+                        /* try and match against appStrList */
+                        i = 0;
+                        while (appStrList[i] != NULL) {
+                            if (XSTRNCASECMP(start, appStrList[i],
+                                                XSTRLEN(appStrList[i])) == 0) {
+                                break;
+                            }
+                            i++;
+                        }
+                        if (appStrList[i] == NULL) {
                             WOLFSSL_MSG("wolfIO_HttpProcessResponse appstr mismatch");
                             return -1;
                         }
@@ -1168,7 +1259,12 @@ int wolfIO_HttpBuildRequestOcsp(const char* domainName, const char* path,
 int wolfIO_HttpProcessResponseOcsp(int sfd, byte** respBuf,
                                        byte* httpBuf, int httpBufSz, void* heap)
 {
-    return wolfIO_HttpProcessResponse(sfd, "application/ocsp-response",
+    const char* appStrList[] = {
+        "application/ocsp-response",
+        NULL
+    };
+
+    return wolfIO_HttpProcessResponse(sfd, appStrList,
         respBuf, httpBuf, httpBufSz, DYNAMIC_TYPE_OCSP, heap);
 }
 
@@ -1277,7 +1373,13 @@ int wolfIO_HttpProcessResponseCrl(WOLFSSL_CRL* crl, int sfd, byte* httpBuf,
     int result;
     byte *respBuf = NULL;
 
-    result = wolfIO_HttpProcessResponse(sfd, "application/pkix-crl",
+    const char* appStrList[] = {
+        "application/pkix-crl",
+        "application/x-pkcs7-crl",
+        NULL
+    };
+
+    result = wolfIO_HttpProcessResponse(sfd, appStrList,
         &respBuf, httpBuf, httpBufSz, DYNAMIC_TYPE_CRL, crl->heap);
     if (result >= 0) {
         result = BufferLoadCRL(crl, respBuf, result, WOLFSSL_FILETYPE_ASN1, 0);

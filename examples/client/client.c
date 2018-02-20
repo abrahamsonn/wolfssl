@@ -24,25 +24,18 @@
         #include <config.h>
 #endif
 
+#include <wolfssl/wolfcrypt/settings.h>
+
 #include <wolfssl/ssl.h>
 
 #if defined(WOLFSSL_MDK_ARM) || defined(WOLFSSL_KEIL_TCP_NET)
         #include <stdio.h>
         #include <string.h>
-
-        #if !defined(WOLFSSL_MDK_ARM)
-            #include "cmsis_os.h"
-            #include "rl_fs.h"
-            #include "rl_net.h"
-        #else
-            #include "rtl.h"
-            #include "wolfssl_MDK_ARM.h"
-        #endif
+        #include "cmsis_os.h"
+        #include "rl_fs.h"
+        #include "rl_net.h"
+        #include "wolfssl_MDK_ARM.h"
 #endif
-
-#include <wolfssl/wolfcrypt/settings.h>
-
-#include <wolfssl/ssl.h>
 
 #include <wolfssl/test.h>
 
@@ -110,7 +103,7 @@ static int NonBlockingSSL_Connect(WOLFSSL* ssl)
                                   error == WOLFSSL_ERROR_WANT_WRITE ||
                                   error == WC_PENDING_E)) {
         int currTimeout = 1;
-
+                                                                        
         if (error == WOLFSSL_ERROR_WANT_READ)
             printf("... client would read block\n");
         else if (error == WOLFSSL_ERROR_WANT_WRITE)
@@ -819,9 +812,7 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
     int    disableCRL    = 0;
     int    externalTest  = 0;
     int    ret;
-#ifndef WOLFSSL_CALLBACKS
     int    err           = 0;
-#endif
     int    scr           = 0;    /* allow secure renegotiation */
     int    forceScr      = 0;    /* force client initiaed scr */
     int    useClientCert = 1;
@@ -1582,8 +1573,13 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
             wolfSSL_CTX_EnableOCSP(ctx, WOLFSSL_OCSP_NO_NONCE
                                                     | WOLFSSL_OCSP_URL_OVERRIDE);
         }
-        else
-            wolfSSL_CTX_EnableOCSP(ctx, 0);
+        else {
+            wolfSSL_CTX_EnableOCSP(ctx, WOLFSSL_OCSP_CHECKALL);
+        }
+
+    #ifdef WOLFSSL_NONBLOCK_OCSP
+        wolfSSL_CTX_SetOCSP_Cb(ctx, OCSPIOCb, OCSPRespFreeCb, NULL);
+    #endif
     }
 #endif
 
@@ -1867,6 +1863,9 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
 #endif
 #ifdef HAVE_CERTIFICATE_STATUS_REQUEST
     if (statusRequest) {
+        if (wolfSSL_CTX_EnableOCSPStapling(ctx) != WOLFSSL_SUCCESS)
+            err_sys("can't enable OCSP Stapling Certificate Manager");
+
         switch (statusRequest) {
             case WOLFSSL_CSR_OCSP:
                 if (wolfSSL_UseOCSPStapling(ssl, WOLFSSL_CSR_OCSP,
@@ -1884,6 +1883,9 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
 #endif
 #ifdef HAVE_CERTIFICATE_STATUS_REQUEST_V2
     if (statusRequest) {
+        if (wolfSSL_CTX_EnableOCSPStapling(ctx) != WOLFSSL_SUCCESS)
+            err_sys("can't enable OCSP Stapling Certificate Manager");
+
         switch (statusRequest) {
             case WOLFSSL_CSR2_OCSP:
                 if (wolfSSL_UseOCSPStaplingV2(ssl,
@@ -2226,10 +2228,12 @@ THREAD_RETURN WOLFSSL_THREAD client_test(void* args)
                                 WOLFSSL_ECC_SECP256R1) != WOLFSSL_SUCCESS) {
             err_sys("unable to use curve secp256r1");
         }
+        #if defined(HAVE_ECC384) || defined(HAVE_ALL_CURVES)
         if (wolfSSL_UseKeyShare(sslResume,
                                 WOLFSSL_ECC_SECP384R1) != WOLFSSL_SUCCESS) {
             err_sys("unable to use curve secp384r1");
         }
+        #endif
     #endif
     #ifdef HAVE_FFDHE_2048
         if (wolfSSL_UseKeyShare(sslResume, WOLFSSL_FFDHE_2048) != WOLFSSL_SUCCESS) {

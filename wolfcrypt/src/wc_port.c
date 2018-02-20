@@ -38,11 +38,11 @@
 
 /* IPP header files for library initialization */
 #ifdef HAVE_FAST_RSA
-#include <ipp.h>
-#include <ippcp.h>
+    #include <ipp.h>
+    #include <ippcp.h>
 #endif
 
-#if defined(FREESCALE_LTC_TFM)
+#ifdef FREESCALE_LTC_TFM
     #include <wolfssl/wolfcrypt/port/nxp/ksdk_port.h>
 #endif
 
@@ -57,6 +57,11 @@
 #if defined(USE_WOLFSSL_MEMORY) && defined(WOLFSSL_TRACK_MEMORY)
     #include <wolfssl/wolfcrypt/memory.h>
     #include <wolfssl/wolfcrypt/mem_track.h>
+#endif
+
+#if defined(WOLFSSL_IMX6_CAAM) || defined(WOLFSSL_IMX6_CAAM_RNG) || \
+    defined(WOLFSSL_IMX6_CAAM_BLOB)
+    #include <wolfssl/wolfcrypt/port/caam/wolfcaam.h>
 #endif
 
 #ifdef _MSC_VER
@@ -153,6 +158,13 @@ int wolfCrypt_Init(void)
     #endif
 #endif
 
+#if defined(WOLFSSL_IMX6_CAAM) || defined(WOLFSSL_IMX6_CAAM_RNG) || \
+    defined(WOLFSSL_IMX6_CAAM_BLOB)
+        if ((ret = wc_caamInit()) != 0) {
+            return ret;
+        }
+#endif
+
         initRefCount = 1;
     }
 
@@ -187,6 +199,11 @@ int wolfCrypt_Cleanup(void)
 
     #ifdef WOLFSSL_ASYNC_CRYPT
         wolfAsync_HardwareStop();
+    #endif
+
+    #if defined(WOLFSSL_IMX6_CAAM) || defined(WOLFSSL_IMX6_CAAM_RNG) || \
+        defined(WOLFSSL_IMX6_CAAM_BLOB)
+        wc_caamFree();
     #endif
 
         initRefCount = 0; /* allow re-init */
@@ -444,6 +461,39 @@ int wolfSSL_CryptHwMutexUnLock(void) {
 /* ---------------------------------------------------------------------------*/
 /* Mutex Ports */
 /* ---------------------------------------------------------------------------*/
+#if defined(OPENSSL_EXTRA) || defined(HAVE_WEBSERVER)
+    static mutex_cb*     compat_mutex_cb = NULL;
+
+    /* Function that locks or unlocks a mutex based on the flag passed in.
+     *
+     * flag lock or unlock i.e. CRYPTO_LOCK
+     * type the type of lock to unlock or lock
+     * file name of the file calling
+     * line the line number from file calling
+     */
+    int wc_LockMutex_ex(int flag, int type, const char* file, int line)
+    {
+        if (compat_mutex_cb != NULL) {
+            compat_mutex_cb(flag, type, file, line);
+            return 0;
+        }
+        else {
+            WOLFSSL_MSG("Mutex call back function not set. Call wc_SetMutexCb");
+            return BAD_STATE_E;
+        }
+    }
+
+
+    /* Set the callback function to use for locking/unlocking mutex
+     *
+     * cb callback function to use
+     */
+    int wc_SetMutexCb(mutex_cb* cb)
+    {
+        compat_mutex_cb = cb;
+        return 0;
+    }
+#endif /* defined(OPENSSL_EXTRA) || defined(HAVE_WEBSERVER) */
 #ifdef SINGLE_THREADED
 
     int wc_InitMutex(wolfSSL_Mutex* m)

@@ -206,6 +206,9 @@ const char* wc_GetErrorString(int error)
     case ASN_CRIT_EXT_E:
         return "X.509 Critical extension ignored or invalid";
 
+    case ASN_ALT_NAME_E:
+        return "ASN alternate name error";
+
     case ECC_BAD_ARG_E :
         return "ECC input argument wrong type, invalid input";
 
@@ -433,6 +436,18 @@ const char* wc_GetErrorString(int error)
 
     case ECC_PRIVATEONLY_E:
         return "Invalid use of private only ECC key";
+
+    case WC_HW_E:
+        return "Error with hardware crypto use";
+
+    case WC_HW_WAIT_E:
+        return "Hardware waiting on resource";
+
+    case PSS_SALTLEN_E:
+        return "PSS - Length of salt is too big for hash algorithm";
+
+    case PRIME_GEN_E:
+        return "Unable to find a prime for RSA key";
 
     default:
         return "unknown error number";

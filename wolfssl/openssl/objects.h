@@ -1,6 +1,6 @@
-/* config-RTX-TCP-FS.h
+/* objects.h
  *
- * Copyright (C) 2006-2017 wolfSSL Inc.
+ * Copyright (C) 2006-2016 wolfSSL Inc.
  *
  * This file is part of wolfSSL.
  *
@@ -20,16 +20,29 @@
  */
 
 
+#ifndef WOLFSSL_OBJECTS_H_
+#define WOLFSSL_OBJECTS_H_
+
+#include <wolfssl/wolfcrypt/settings.h>
+#include <wolfssl/openssl/ssl.h>
+
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
+#define OBJ_nid2sn  wolfSSL_OBJ_nid2sn
+#define OBJ_obj2nid wolfSSL_OBJ_obj2nid
+#define OBJ_sn2nid  wolfSSL_OBJ_sn2nid
+#define OBJ_nid2ln  wolfSSL_OBJ_nid2ln
+#define OBJ_txt2nid wolfSSL_OBJ_txt2nid
+#define OBJ_nid2obj wolfSSL_OBJ_nid2obj
+#define OBJ_obj2txt wolfSSL_OBJ_obj2txt
+#define OBJ_cleanup wolfSSL_OBJ_cleanup
+#define ASN1_OBJECT_free wolfSSL_ASN1_OBJECT_free
 
 
-// <<< Use Configuration Wizard in Context Menu >>>
-// <h> Build Target: Simple Client
-//   <s.15>Callee IP Address
-//   <i> Default: "192.168.1.100"
-#define CYASSL_CALLEE_IP           "192.168.11.3"
-//   <o>Callee Port Number
-//   <i> Default: "11111"
-#define CYASSL_CALLEE_PORT           443
+#ifdef __cplusplus
+    }  /* extern "C" */
+#endif
 
-//     </h>
-// <<< end of configuration section >>>
+#endif /* WOLFSSL_OBJECTS_H_ */

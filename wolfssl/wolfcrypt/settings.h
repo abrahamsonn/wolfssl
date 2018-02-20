@@ -442,6 +442,11 @@
     #define USE_CERT_BUFFERS_2048
 #endif
 
+#ifdef WOLFSSL_CHIBIOS
+    /* ChibiOS definitions. This file is distributed with chibiOS. */
+    #include "wolfssl_chibios.h"
+#endif
+
 #ifdef WOLFSSL_NRF5x
         #define SIZEOF_LONG 4
         #define SIZEOF_LONG_LONG 8
@@ -538,7 +543,8 @@ extern void uITRON4_free(void *p) ;
     #include "FreeRTOS.h"
 
     /* FreeRTOS pvPortRealloc() only in AVR32_UC3 port */
-    #if !defined(XMALLOC_USER) && !defined(NO_WOLFSSL_MEMORY)
+    #if !defined(XMALLOC_USER) && !defined(NO_WOLFSSL_MEMORY) && \
+        !defined(WOLFSSL_STATIC_MEMORY)
         #define XMALLOC(s, h, type)  pvPortMalloc((s))
         #define XFREE(p, h, type)    vPortFree((p))
     #endif
@@ -569,20 +575,19 @@ extern void uITRON4_free(void *p) ;
 #endif
 
 #ifdef FREERTOS_TCP
+    #if !defined(NO_WOLFSSL_MEMORY) && !defined(XMALLOC_USER) && \
+        !defined(WOLFSSL_STATIC_MEMORY)
+        #define XMALLOC(s, h, type)  pvPortMalloc((s))
+        #define XFREE(p, h, type)    vPortFree((p))
+    #endif
 
-#if !defined(NO_WOLFSSL_MEMORY) && !defined(XMALLOC_USER)
-#define XMALLOC(s, h, type)  pvPortMalloc((s))
-#define XFREE(p, h, type)    vPortFree((p))
-#endif
+    #define WOLFSSL_GENSEED_FORTEST
 
-#define WOLFSSL_GENSEED_FORTEST
-
-#define NO_WOLFSSL_DIR
-#define NO_WRITEV
-#define USE_FAST_MATH
-#define TFM_TIMING_RESISTANT
-#define NO_MAIN_DRIVER
-
+    #define NO_WOLFSSL_DIR
+    #define NO_WRITEV
+    #define USE_FAST_MATH
+    #define TFM_TIMING_RESISTANT
+    #define NO_MAIN_DRIVER
 #endif
 
 #ifdef WOLFSSL_TIRTOS
@@ -988,8 +993,6 @@ extern void uITRON4_free(void *p) ;
     #define NO_WOLFSSL_DIR
     #undef  NO_RABBIT
     #define NO_RABBIT
-    #undef  NO_64BIT
-    #define NO_64BIT
     #ifndef NO_STM32_RNG
         #undef  STM32_RNG
         #define STM32_RNG
@@ -1178,6 +1181,27 @@ extern void uITRON4_free(void *p) ;
     #endif
 #endif /*(WOLFSSL_XILINX_CRYPT)*/
 
+#ifdef WOLFSSL_IMX6
+    #ifndef SIZEOF_LONG_LONG
+        #define SIZEOF_LONG_LONG 8
+    #endif
+#endif
+
+/* if defined turn on all CAAM support */
+#ifdef WOLFSSL_IMX6_CAAM
+    #undef  WOLFSSL_IMX6_CAAM_RNG
+    #define WOLFSSL_IMX6_CAAM_RNG
+
+    #undef  WOLFSSL_IMX6_CAAM_BLOB
+    #define WOLFSSL_IMX6_CAAM_BLOB
+
+#if defined(HAVE_AESGCM) || defined(WOLFSSL_AES_XTS)
+    /* large performance gain with HAVE_AES_ECB defined */
+    #undef HAVE_AES_ECB
+    #define HAVE_AES_ECB
+#endif
+#endif
+
 #if !defined(XMALLOC_USER) && !defined(MICRIUM_MALLOC) && \
     !defined(WOLFSSL_LEANPSK) && !defined(NO_WOLFSSL_MEMORY) && \
     !defined(XMALLOC_OVERRIDE)
@@ -1208,11 +1232,21 @@ extern void uITRON4_free(void *p) ;
 
 #ifdef WOLFSSL_SGX
     #ifdef _MSC_VER
-        #define WOLFCRYPT_ONLY
         #define NO_RC4
-        #define NO_DES3
-        #define NO_SHA
-        #define NO_MD5
+        #ifndef HAVE_FIPS
+            #define WOLFCRYPT_ONLY
+            #define NO_DES3
+            #define NO_SHA
+            #define NO_MD5
+        #else
+            #define TFM_TIMING_RESISTANT
+            #define NO_WOLFSSL_DIR
+            #define NO_FILESYSTEM
+            #define NO_WRITEV
+            #define NO_MAIN_DRIVER
+            #define WOLFSSL_LOG_PRINTF
+            #define WOLFSSL_DH_CONST
+        #endif
     #else
         #define HAVE_ECC
         #define ECC_TIMING_RESISTANT
@@ -1224,7 +1258,7 @@ extern void uITRON4_free(void *p) ;
         #define WOLFSSL_LOG_PRINTF
         #define WOLFSSL_DH_CONST
     #endif /* _MSC_VER */
-    #ifndef NO_RSA
+    #if !defined(HAVE_FIPS) && !defined(NO_RSA)
         #define WC_RSA_BLINDING
     #endif
     #define SINGLE_THREADED
@@ -1286,7 +1320,7 @@ extern void uITRON4_free(void *p) ;
 /* user can specify what curves they want with ECC_USER_CURVES otherwise
  * all curves are on by default for now */
 #ifndef ECC_USER_CURVES
-    #ifndef HAVE_ALL_CURVES
+    #if !defined(WOLFSSL_SP_MATH) && !defined(HAVE_ALL_CURVES)
         #define HAVE_ALL_CURVES
     #endif
 #endif
@@ -1301,6 +1335,10 @@ extern void uITRON4_free(void *p) ;
     #ifndef NO_ECC_VERIFY
         #undef HAVE_ECC_VERIFY
         #define HAVE_ECC_VERIFY
+    #endif
+    #ifndef NO_ECC_CHECK_KEY
+        #undef HAVE_ECC_CHECK_KEY
+        #define HAVE_ECC_CHECK_KEY
     #endif
     #ifndef NO_ECC_DHE
         #undef HAVE_ECC_DHE
@@ -1361,6 +1399,23 @@ extern void uITRON4_free(void *p) ;
         #undef  AES_MAX_KEY_SIZE
         #define AES_MAX_KEY_SIZE    256
     #endif
+
+    #ifndef NO_AES_128
+        #undef  WOLFSSL_AES_128
+        #define WOLFSSL_AES_128
+    #endif
+    #if !defined(NO_AES_192) && AES_MAX_KEY_SIZE >= 192
+        #undef  WOLFSSL_AES_192
+        #define WOLFSSL_AES_192
+    #endif
+    #if !defined(NO_AES_256) && AES_MAX_KEY_SIZE >= 256
+        #undef  WOLFSSL_AES_256
+        #define WOLFSSL_AES_256
+    #endif
+    #if !defined(WOLFSSL_AES_128) && defined(HAVE_ECC_ENCRYPT)
+        #warning HAVE_ECC_ENCRYPT uses AES 128 bit keys
+     #endif
+
     #ifndef NO_AES_DECRYPT
         #undef  HAVE_AES_DECRYPT
         #define HAVE_AES_DECRYPT
@@ -1375,6 +1430,12 @@ extern void uITRON4_free(void *p) ;
     #endif
     #ifdef WOLFSSL_AES_XTS
         /* AES-XTS makes calls to AES direct functions */
+        #ifndef WOLFSSL_AES_DIRECT
+        #define WOLFSSL_AES_DIRECT
+        #endif
+    #endif
+    #ifdef WOLFSSL_AES_CFB
+        /* AES-CFB makes calls to AES direct functions */
         #ifndef WOLFSSL_AES_DIRECT
         #define WOLFSSL_AES_DIRECT
         #endif
@@ -1572,6 +1633,13 @@ extern void uITRON4_free(void *p) ;
     #endif
 #endif
 
+/* switch for compatibility layer functionality. Has subparts i.e. BIO/X509
+ * When opensslextra is enabled all subparts should be turned on. */
+#ifdef OPENSSL_EXTRA
+    #undef  OPENSSL_EXTRA_X509_SMALL
+    #define OPENSSL_EXTRA_X509_SMALL
+#endif /* OPENSSL_EXTRA */
+    
 #ifdef __cplusplus
     }   /* extern "C" */
 #endif

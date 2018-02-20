@@ -38,7 +38,9 @@ tags
 cyassl-config
 wolfssl-config
 cyassl.sublime*
+fips.h
 fips.c
+fipsv2.c
 fips_test.c
 fips
 src/async.c
@@ -55,7 +57,7 @@ ctaocrypt/benchmark/benchmark
 ctaocrypt/test/testctaocrypt
 wolfcrypt/benchmark/benchmark
 wolfcrypt/test/testwolfcrypt
-examples/benchmark/tls-bench
+examples/benchmark/tls_bench
 examples/client/client
 examples/echoclient/echoclient
 examples/echoserver/echoserver
@@ -90,6 +92,7 @@ ntru-key.raw
 key.der
 key.pem
 ecc-public-key.der
+ecc-key-pkcs8.der
 ecc-key.der
 ecc-key.pem
 certreq.der

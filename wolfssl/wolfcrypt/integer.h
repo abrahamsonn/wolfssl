@@ -33,7 +33,9 @@
    may not be faster on all
 */
 #include <wolfssl/wolfcrypt/types.h>       /* will set MP_xxBIT if not default */
-#ifdef USE_FAST_MATH
+#ifdef WOLFSSL_SP_MATH
+    #include <wolfssl/wolfcrypt/sp_int.h>
+#elif defined(USE_FAST_MATH)
     #include <wolfssl/wolfcrypt/tfm.h>
 #else
 
@@ -364,7 +366,7 @@ MP_API int mp_radix_size (mp_int * a, int radix, int *size);
 #if defined(HAVE_ECC) || defined(WOLFSSL_KEY_GEN)
     MP_API int mp_sqrmod(mp_int* a, mp_int* b, mp_int* c);
 #endif
-#if defined(HAVE_ECC) || defined(WOLFSSL_KEY_GEN)
+#if !defined(NO_DSA) || defined(HAVE_ECC)
     MP_API int mp_read_radix(mp_int* a, const char* str, int radix);
 #endif
 

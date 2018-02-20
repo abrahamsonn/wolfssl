@@ -1933,14 +1933,14 @@ int fp_to_unsigned_bin_at_pos(int x, fp_int *t, unsigned char *b)
    fp_digit n;
 
    for (j=0,i=0; i<t->used-1; ) {
-       b[x++] = t->dp[i] >> j;
+       b[x++] = (unsigned char)(t->dp[i] >> j);
        j += 8;
        i += j == DIGIT_BIT;
        j &= DIGIT_BIT - 1;
    }
    n = t->dp[i];
    while (n != 0) {
-       b[x++] = n;
+       b[x++] = (unsigned char)n;
        n >>= 8;
    }
    return x;
@@ -2455,6 +2455,12 @@ int mp_mul_2d(fp_int *a, int b, fp_int *c)
 	return MP_OKAY;
 }
 
+int mp_2expt(fp_int* a, int b)
+{
+    fp_2expt(a, b);
+    return MP_OKAY;
+}
+
 int mp_div(fp_int * a, fp_int * b, fp_int * c, fp_int * d)
 {
     return fp_div(a, b, c, d);
@@ -2915,9 +2921,9 @@ int fp_isprime_ex(fp_int *a, int t)
 
    /* do trial division */
    for (r = 0; r < FP_PRIME_SIZE; r++) {
-       fp_mod_d(a, primes[r], &d);
-       if (d == 0) {
-          return FP_NO;
+       res = fp_mod_d(a, primes[r], &d);
+       if (res != MP_OKAY || d == 0) {
+           return FP_NO;
        }
    }
 
@@ -3076,15 +3082,16 @@ int mp_add_d(fp_int *a, fp_digit b, fp_int *c)
 #endif  /* HAVE_ECC || !NO_PWDBASED */
 
 
-#if defined(HAVE_ECC) || defined(WOLFSSL_KEY_GEN) || defined(HAVE_COMP_KEY) || \
-    defined(WOLFSSL_DEBUG_MATH) || defined(DEBUG_WOLFSSL)
+#if !defined(NO_DSA) || defined(HAVE_ECC) || defined(WOLFSSL_KEY_GEN) || \
+    defined(HAVE_COMP_KEY) || defined(WOLFSSL_DEBUG_MATH) || \
+    defined(DEBUG_WOLFSSL)
 
 /* chars used in radix conversions */
 static const char* const fp_s_rmap = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                      "abcdefghijklmnopqrstuvwxyz+/";
 #endif
 
-#ifdef HAVE_ECC
+#if !defined(NO_DSA) || defined(HAVE_ECC)
 #if DIGIT_BIT == 64 || DIGIT_BIT == 32
 static int fp_read_radix_16(fp_int *a, const char *str)
 {
@@ -3196,6 +3203,10 @@ int mp_read_radix(mp_int *a, const char *str, int radix)
 {
     return fp_read_radix(a, str, radix);
 }
+
+#endif /* !defined(NO_DSA) || defined(HAVE_ECC) */
+
+#ifdef HAVE_ECC
 
 /* fast math conversion */
 int mp_sqr(fp_int *A, fp_int *B)
@@ -3387,6 +3398,13 @@ void mp_dump(const char* desc, mp_int* a, byte verbose)
 #endif /* WOLFSSL_DEBUG_MATH */
 
 #endif /* defined(WOLFSSL_KEY_GEN) || defined(HAVE_COMP_KEY) || defined(WOLFSSL_DEBUG_MATH) */
+
+
+int mp_abs(mp_int* a, mp_int* b)
+{
+    fp_abs(a, b);
+    return FP_OKAY;
+}
 
 
 int mp_lshd (mp_int * a, int b)
