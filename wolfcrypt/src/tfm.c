@@ -479,8 +479,8 @@ void fp_mul_comba(fp_int *A, fp_int *B, fp_int *C)
    /* Always take branch to use tmp variable. This avoids a cache attack for
     * determining if C equals A */
    if (1) {
-     fp_init(&tmp);
-     dst = &tmp;
+      fp_init(&tmp);
+      dst = &tmp;
    }
 
    for (ix = 0; ix < pa; ix++) {

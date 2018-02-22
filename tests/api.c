@@ -2628,8 +2628,8 @@ static void test_wolfSSL_PKCS12(void)
     !defined(NO_ASN) && !defined(NO_PWDBASED) && !defined(NO_RSA)
     byte buffer[5300];
     char file[] = "./certs/test-servercert.p12";
-    char pass[] = "a password";
     char order[] = "./certs/ecc-rsa-server.p12";
+    char pass[] = "a password";
     FILE *f;
     int  bytes, ret;
     WOLFSSL_BIO      *bio;
@@ -2641,8 +2641,7 @@ static void test_wolfSSL_PKCS12(void)
     WOLF_STACK_OF(WOLFSSL_X509) *ca;
     WOLFSSL_X509_NAME* subject;
     WOLFSSL_X509     *x509;
-    /* nightly-powerpc_known_configs has been vailing because the following
-     * variables are unused, so I just voided them :P */
+
     (void)order;
     (void)subject;
     (void)x509;
