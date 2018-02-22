@@ -2641,8 +2641,11 @@ static void test_wolfSSL_PKCS12(void)
     WOLF_STACK_OF(WOLFSSL_X509) *ca;
     WOLFSSL_X509_NAME* subject;
     WOLFSSL_X509     *x509;
-    /* The 3 voided variables above were causing unused errors w/ some ppc
-     * configs*/
+    /* nightly-powerpc_known_configs has been vailing because the following
+     * variables are unused, so I just voided them :P */
+    (void)order;
+    (void)subject;
+    (void)x509;
 
     printf(testingFmt, "wolfSSL_PKCS12()");
 
