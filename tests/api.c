@@ -2628,9 +2628,8 @@ static void test_wolfSSL_PKCS12(void)
     !defined(NO_ASN) && !defined(NO_PWDBASED) && !defined(NO_RSA)
     byte buffer[5300];
     char file[] = "./certs/test-servercert.p12";
-    char order[] = "./certs/ecc-rsa-server.p12";
     char pass[] = "a password";
-    WOLFSSL_X509_NAME* subject;
+    char order[] = "./certs/ecc-rsa-server.p12";
     FILE *f;
     int  bytes, ret;
     WOLFSSL_BIO      *bio;
@@ -2638,9 +2637,12 @@ static void test_wolfSSL_PKCS12(void)
     WC_PKCS12        *pkcs12;
     WC_PKCS12        *pkcs12_2;
     WOLFSSL_X509     *cert;
-    WOLFSSL_X509     *x509;
     WOLFSSL_X509     *tmp;
     WOLF_STACK_OF(WOLFSSL_X509) *ca;
+    WOLFSSL_X509_NAME* subject;
+    WOLFSSL_X509     *x509;
+    /* The 3 voided variables above were causing unused errors w/ some ppc
+     * configs*/
 
     printf(testingFmt, "wolfSSL_PKCS12()");
 
