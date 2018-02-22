@@ -316,6 +316,9 @@ int memory_test(void);
 #ifdef HAVE_VALGRIND
 int mp_test(void);
 #endif
+#ifdef ASN_BER_TO_DER
+int berder_test(void);
+#endif
 int logging_test(void);
 int mutex_test(void);
 #if defined(USE_WOLFSSL_MEMORY) && !defined(FREERTOS)
@@ -881,6 +884,13 @@ int wolfcrypt_test(void* args)
         return err_sys("mp       test failed!\n", ret);
     else
         printf( "mp       test passed!\n");
+#endif
+
+#ifdef ASN_BER_TO_DER
+    if ( (ret = berder_test()) != 0)
+        return err_sys("ber-der  test failed!\n", ret);
+    else
+        printf( "ber-der  test passed!\n");
 #endif
 
     if ( (ret = logging_test()) != 0)
@@ -14358,9 +14368,45 @@ done:
 #endif /* WOLFSSL_CERT_EXT */
 
 #ifdef WOLFSSL_CUSTOM_CURVES
+static const byte eccKeyExplicitCurve[] = {
+    0x30, 0x81, 0xf5, 0x30, 0x81, 0xae, 0x06, 0x07,
+    0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01, 0x30,
+    0x81, 0xa2, 0x02, 0x01, 0x01, 0x30, 0x2c, 0x06,
+    0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x01, 0x01,
+    0x02, 0x21, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xfe, 0xff,
+    0xff, 0xfc, 0x2f, 0x30, 0x06, 0x04, 0x01, 0x00,
+    0x04, 0x01, 0x07, 0x04, 0x41, 0x04, 0x79, 0xbe,
+    0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0,
+    0x62, 0x95, 0xce, 0x87, 0x0b, 0x07, 0x02, 0x9b,
+    0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2,
+    0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98, 0x48, 0x3a,
+    0xda, 0x77, 0x26, 0xa3, 0xc4, 0x65, 0x5d, 0xa4,
+    0xfb, 0xfc, 0x0e, 0x11, 0x08, 0xa8, 0xfd, 0x17,
+    0xb4, 0x48, 0xa6, 0x85, 0x54, 0x19, 0x9c, 0x47,
+    0xd0, 0x8f, 0xfb, 0x10, 0xd4, 0xb8, 0x02, 0x21,
+    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xfe, 0xba, 0xae, 0xdc, 0xe6, 0xaf, 0x48, 0xa0,
+    0x3b, 0xbf, 0xd2, 0x5e, 0x8c, 0xd0, 0x36, 0x41,
+    0x41, 0x02, 0x01, 0x01, 0x03, 0x42, 0x00, 0x04,
+    0x3c, 0x4c, 0xc9, 0x5e, 0x2e, 0xa2, 0x3d, 0x49,
+    0xcc, 0x5b, 0xff, 0x4f, 0xc9, 0x2e, 0x1d, 0x4a,
+    0xc6, 0x21, 0xf6, 0xf3, 0xe6, 0x0b, 0x4f, 0xa9,
+    0x9d, 0x74, 0x99, 0xdd, 0x97, 0xc7, 0x6e, 0xbe,
+    0x14, 0x2b, 0x39, 0x9d, 0x63, 0xc7, 0x97, 0x0d,
+    0x45, 0x25, 0x40, 0x30, 0x77, 0x05, 0x76, 0x88,
+    0x38, 0x96, 0x29, 0x7d, 0x9c, 0xe1, 0x50, 0xbe,
+    0xac, 0xf0, 0x1d, 0x86, 0xf4, 0x2f, 0x65, 0x0b
+};
+
 static int ecc_test_custom_curves(WC_RNG* rng)
 {
-    int ret;
+    int     ret;
+    word32  inOutIdx;
+    ecc_key key;
 
     /* test use of custom curve - using BRAINPOOLP256R1 for test */
     const word32 ecc_oid_brainpoolp256r1_sum = 104;
@@ -14406,6 +14452,14 @@ static int ecc_test_custom_curves(WC_RNG* rng)
         }
     }
     #endif
+
+    inOutIdx = 0;
+    ret = wc_EccPublicKeyDecode(eccKeyExplicitCurve, &inOutIdx, &key,
+                                                   sizeof(eccKeyExplicitCurve));
+    if (ret != 0)
+        return -6715;
+
+    wc_ecc_free(&key);
 
     return ret;
 }
@@ -16693,6 +16747,10 @@ int pkcs7encrypted_test(void)
     testSz = sizeof(testVectors) / sizeof(pkcs7EncryptedVector);
 
     for (i = 0; i < testSz; i++) {
+        ret = wc_PKCS7_Init(&pkcs7, HEAP_HINT, devId);
+        if (ret != 0)
+            return -7599;
+
         pkcs7.content              = (byte*)testVectors[i].content;
         pkcs7.contentSz            = testVectors[i].contentSz;
         pkcs7.contentOID           = testVectors[i].contentOID;
@@ -16701,7 +16759,6 @@ int pkcs7encrypted_test(void)
         pkcs7.encryptionKeySz      = testVectors[i].encryptionKeySz;
         pkcs7.unprotectedAttribs   = testVectors[i].attribs;
         pkcs7.unprotectedAttribsSz = testVectors[i].attribsSz;
-        pkcs7.heap                 = HEAP_HINT;
 
         /* encode encryptedData */
         encryptedSz = wc_PKCS7_EncodeEncryptedData(&pkcs7, encrypted,
@@ -17346,6 +17403,114 @@ done:
     mp_clear(&a);
     wc_FreeRng(&rng);
     return ret;
+}
+#endif
+
+#ifdef ASN_BER_TO_DER
+typedef struct berDerTestData {
+    const byte *in;
+    word32 inSz;
+    const byte *out;
+    word32 outSz;
+} berDerTestData;
+
+int berder_test(void)
+{
+    int ret;
+    int i;
+    word32 len, l;
+    byte out[32];
+    static const byte good1_in[] = { 0x30, 0x80, 0x00, 0x00 };
+    static const byte good1_out[] = { 0x30, 0x00 };
+    static const byte good2_in[] = { 0x30, 0x80, 0x02, 0x01, 0x01, 0x00, 0x00 };
+    static const byte good2_out[] = { 0x30, 0x03, 0x02, 0x01, 0x01 };
+    static const byte good3_in[] = {
+        0x24, 0x80, 0x04, 0x01, 0x01, 0x00, 0x00
+    };
+    static const byte good3_out[] = { 0x04, 0x1, 0x01 };
+    static const byte good4_in[] = {
+        0x30, 0x80,
+          0x02, 0x01, 0x01,
+          0x30, 0x80,
+            0x24, 0x80,
+              0x04, 0x01, 0x01,
+              0x04, 0x02, 0x02, 0x03,
+              0x00, 0x00,
+            0x06, 0x01, 0x01,
+            0x00, 0x00,
+          0x31, 0x80,
+            0x06, 0x01, 0x01,
+            0x00, 0x00,
+          0x00, 0x00,
+    };
+    static const byte good4_out[] = {
+        0x30, 0x0d,
+          0x02, 0x01, 0x01,
+          0x30, 0x08,
+            0x04, 0x03, 0x01, 0x02, 0x03,
+            0x06, 0x01, 0x01,
+          0x31, 0x03,
+            0x06, 0x01, 0x01
+    };
+    
+    berDerTestData testData[] = {
+        { good1_in, sizeof(good1_in), good1_out, sizeof(good1_out) },
+        { good2_in, sizeof(good2_in), good2_out, sizeof(good2_out) },
+        { good3_in, sizeof(good3_in), good3_out, sizeof(good3_out) },
+        { good4_in, sizeof(good4_in), good4_out, sizeof(good4_out) },
+    };
+
+    for (i = 0; i < (int)(sizeof(testData) / sizeof(*testData)); i++) {
+        ret = wc_BerToDer(testData[i].in, testData[i].inSz, NULL, &len);
+        if (ret != LENGTH_ONLY_E)
+            return -7830 - i;
+        if (len != testData[i].outSz)
+            return -7840 - i;
+        len = testData[i].outSz;
+        ret = wc_BerToDer(testData[i].in, testData[i].inSz, out, &len);
+        if (ret != 0)
+            return -7850 - i;
+        if (XMEMCMP(out, testData[i].out, len) != 0)
+            return -7860 - i;
+
+        for (l = 1; l < testData[i].inSz; l++) {
+            ret = wc_BerToDer(testData[i].in, l, NULL, &len);
+            if (ret != ASN_PARSE_E)
+                 return -7870;
+            len = testData[i].outSz;
+            ret = wc_BerToDer(testData[i].in, l, out, &len);
+            if (ret != ASN_PARSE_E)
+                 return -7871;
+        }
+    }
+
+    ret = wc_BerToDer(NULL, 4, NULL, NULL);
+    if (ret != BAD_FUNC_ARG)
+        return -7880;
+    ret = wc_BerToDer(out, 4, NULL, NULL);
+    if (ret != BAD_FUNC_ARG)
+        return -7881;
+    ret = wc_BerToDer(NULL, 4, NULL, &len);
+    if (ret != BAD_FUNC_ARG)
+        return -7882;
+    ret = wc_BerToDer(NULL, 4, out, NULL);
+    if (ret != BAD_FUNC_ARG)
+        return -7883;
+    ret = wc_BerToDer(out, 4, out, NULL);
+    if (ret != BAD_FUNC_ARG)
+        return -7884;
+    ret = wc_BerToDer(NULL, 4, out, &len);
+    if (ret != BAD_FUNC_ARG)
+        return -7885;
+
+    for (l = 1; l < sizeof(good4_out); l++) {
+        len = l;
+        ret = wc_BerToDer(good4_in, sizeof(good4_in), out, &len);
+        if (ret != BUFFER_E)
+            return -7890;
+    }
+
+    return 0;
 }
 #endif
 

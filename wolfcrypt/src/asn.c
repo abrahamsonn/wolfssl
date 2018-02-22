@@ -786,6 +786,211 @@ static word32 SetBitString(word32 len, byte unusedBits, byte* output)
 }
 #endif /* !NO_RSA || HAVE_ECC || HAVE_ED25519 */
 
+#ifdef ASN_BER_TO_DER
+/* Convert a BER encoding with indefinite length items to DER.
+ *
+ * ber    BER encoded data.
+ * berSz  Length of BER encoded data.
+ * der    Buffer to hold DER encoded version of data.
+ *        NULL indicates only the length is required.
+ * derSz  The size of the buffer to hold the DER encoded data.
+ *        Will be set if der is NULL, otherwise the value is checked as der is
+ *        filled.
+ * returns ASN_PARSE_E if the BER data is invalid and BAD_FUNC_ARG if ber or
+ * derSz are NULL.
+ */
+int wc_BerToDer(const byte* ber, word32 berSz, byte* der, word32* derSz)
+{
+    int ret;
+    word32 i, j, k;
+    int len, l;
+    int indef;
+    int depth = 0;
+    byte type;
+    word32 cnt, sz;
+    word32 outSz;
+    byte lenBytes[4];
+
+    if (ber == NULL || derSz == NULL)
+        return BAD_FUNC_ARG;
+
+    outSz = *derSz;
+
+    for (i = 0, j = 0; i < berSz; ) {
+        /* Check that there is data for an ASN item to parse. */
+        if (i + 2 > berSz)
+            return ASN_PARSE_E;
+
+        /* End Of Content (EOC) mark end of indefinite length items.
+         * EOCs are not encoded in DER.
+         * Keep track of no. indefinite length items that have not been
+         * terminated in depth.
+         */
+        if (ber[i] == 0 && ber[i+1] == 0) {
+            if (depth == 0)
+                break;
+            if (--depth == 0)
+                break;
+
+            i += 2;
+            continue;
+        }
+
+        /* Indefinite length is encoded as: 0x80 */
+        type = ber[i];
+        indef = ber[i+1] == ASN_INDEF_LENGTH;
+        if (indef && (type & 0xC0) == 0 &&
+                                   ber[i] != (ASN_SEQUENCE | ASN_CONSTRUCTED) &&
+                                   ber[i] != (ASN_SET      | ASN_CONSTRUCTED)) {
+            /* Indefinite length OCTET STRING or other simple type.
+             * Put all the data into one entry.
+             */
+
+            /* Type no longer constructed. */
+            type &= ~ASN_CONSTRUCTED;
+            if (der != NULL) {
+                /* Ensure space for type. */
+                if (j + 1 >= outSz)
+                    return BUFFER_E;
+                der[j] = type;
+            }
+            i++; j++;
+            /* Skip indefinite length. */
+            i++;
+
+            /* There must be further ASN1 items to combine. */
+            if (i + 2 > berSz)
+                return ASN_PARSE_E;
+
+            /* Calculate length of combined data. */
+            len = 0;
+            k = i;
+            while (ber[k] != 0x00) {
+                /* Each ASN item must be the same type as the constructed. */
+                if (ber[k] != type)
+                    return ASN_PARSE_E;
+                k++;
+
+                ret = GetLength(ber, &k, &l, berSz);
+                if (ret < 0)
+                    return ASN_PARSE_E;
+                k += l;
+                len += l;
+
+                /* Must at least have terminating EOC. */
+                if (k + 2 > berSz)
+                    return ASN_PARSE_E;
+            }
+            /* Ensure a valid EOC ASN item. */
+            if (ber[k+1] != 0x00)
+                return ASN_PARSE_E;
+
+            if (der == NULL) {
+                /* Add length of ASN item length encoding and data. */
+                j += SetLength(len, lenBytes);
+                j += len;
+            }
+            else {
+                /* Check space for encoded length. */
+                if (SetLength(len, lenBytes) > outSz - j)
+                    return BUFFER_E;
+                /* Encode new length. */
+                j += SetLength(len, der + j);
+
+                /* Encode data in single item. */
+                k = i;
+                while (ber[k] != 0x00) {
+                    /* Skip ASN type. */
+                    k++;
+
+                    /* Find length of data in ASN item. */
+                    ret = GetLength(ber, &k, &l, berSz);
+                    if (ret < 0)
+                        return ASN_PARSE_E;
+
+                    /* Ensure space for data and copy in. */
+                    if (j + l > outSz)
+                        return BUFFER_E;
+                    XMEMCPY(der + j, ber + k, l);
+                    k += l; j += l;
+                }
+            }
+            /* Continue conversion after EOC. */
+            i = k + 2;
+
+            continue;
+        }
+
+        if (der != NULL) {
+            /* Ensure space for type and at least one byte of length. */
+            if (j + 1 >= outSz)
+                return BUFFER_E;
+            /* Put in type. */
+            der[j] = ber[i];
+        }
+        i++; j++;
+
+        if (indef) {
+            /* Skip indefinite length. */
+            i++;
+            /* Calculate the size of the data inside constructed. */
+            ret = wc_BerToDer(ber + i, berSz - i, NULL, &sz);
+            if (ret != LENGTH_ONLY_E)
+                return ret;
+
+            if (der != NULL) {
+                /* Ensure space for encoded length. */
+                if (SetLength(sz, lenBytes) > outSz - j)
+                    return BUFFER_E;
+                /* Encode real length. */
+                j += SetLength(sz, der + j);
+            }
+            else {
+                /* Add size of encoded length. */
+                j += SetLength(sz, lenBytes);
+            }
+
+            /* Another EOC to find. */
+            depth++;
+        }
+        else {
+            /* Get the size of the encode length and length value. */
+            cnt = i;
+            ret = GetLength(ber, &cnt, &len, berSz);
+            if (ret < 0)
+                return ASN_PARSE_E;
+            cnt -= i;
+
+            /* Check there is enough data to copy out. */
+            if (i + cnt + len > berSz)
+                return ASN_PARSE_E;
+
+            if (der != NULL) {
+                /* Ensure space in DER buffer. */
+                if (j + cnt + len > outSz)
+                    return BUFFER_E;
+                /* Copy length and data into DER buffer. */
+                XMEMCPY(der + j, ber + i, cnt + len);
+            }
+            /* Continue conversion after this ASN item. */
+            i += cnt + len;
+            j += cnt + len;
+        }
+    }
+
+    if (depth >= 1)
+        return ASN_PARSE_E;
+
+    /* Return length if no buffer to write to. */
+    if (der == NULL) {
+        *derSz = j;
+        return LENGTH_ONLY_E;
+    }
+
+    return 0;
+}
+#endif
+
 #if defined(WOLFSSL_CERT_GEN) || defined(WOLFSSL_KEY_GEN)
 
 #if (!defined(NO_RSA) && !defined(HAVE_USER_RSA)) || \
@@ -3713,7 +3918,7 @@ static int StoreRsaKey(DecodedCert* cert)
 static int GetKey(DecodedCert* cert)
 {
     int length;
-#ifdef HAVE_NTRU
+#if defined(HAVE_ECC) || defined(HAVE_NTRU)
     int tmpIdx = cert->srcIdx;
 #endif
 
@@ -3806,29 +4011,34 @@ static int GetKey(DecodedCert* cert)
         case ECDSAk:
         {
             int ret;
+            byte seq[5];
+            int pubLen = length + 1 + SetLength(length, seq);
 
-            if (GetObjectId(cert->source, &cert->srcIdx,
+            if (cert->source[cert->srcIdx] !=
+                                             (ASN_SEQUENCE | ASN_CONSTRUCTED)) {
+                if (GetObjectId(cert->source, &cert->srcIdx,
                             &cert->pkCurveOID, oidCurveType, cert->maxIdx) < 0)
-                return ASN_PARSE_E;
+                    return ASN_PARSE_E;
 
-            if (CheckCurve(cert->pkCurveOID) < 0)
-                return ECC_CURVE_OID_E;
+                if (CheckCurve(cert->pkCurveOID) < 0)
+                    return ECC_CURVE_OID_E;
 
-            /* key header */
-            ret = CheckBitString(cert->source, &cert->srcIdx, &length,
-                                 cert->maxIdx, 1, NULL);
-            if (ret != 0)
-                return ret;
+                /* key header */
+                ret = CheckBitString(cert->source, &cert->srcIdx, &length,
+                                                         cert->maxIdx, 1, NULL);
+                if (ret != 0)
+                    return ret;
+            }
 
-            cert->publicKey = (byte*)XMALLOC(length, cert->heap,
+            cert->publicKey = (byte*)XMALLOC(pubLen, cert->heap,
                                              DYNAMIC_TYPE_PUBLIC_KEY);
             if (cert->publicKey == NULL)
                 return MEMORY_E;
-            XMEMCPY(cert->publicKey, &cert->source[cert->srcIdx], length);
+            XMEMCPY(cert->publicKey, &cert->source[tmpIdx], pubLen);
             cert->pubKeyStored = 1;
-            cert->pubKeySize   = length;
+            cert->pubKeySize   = pubLen;
 
-            cert->srcIdx += length;
+            cert->srcIdx = tmpIdx + pubLen;
 
             return 0;
         }
@@ -5161,6 +5371,8 @@ static int ConfirmSignature(SignatureCtx* sigCtx,
             #ifdef HAVE_ECC
                 case ECDSAk:
                 {
+                    word32 idx = 0;
+
                     sigCtx->verify = 0;
                     sigCtx->key.ecc = (ecc_key*)XMALLOC(sizeof(ecc_key),
                                                 sigCtx->heap, DYNAMIC_TYPE_ECC);
@@ -5171,8 +5383,9 @@ static int ConfirmSignature(SignatureCtx* sigCtx,
                                                           sigCtx->devId)) < 0) {
                         goto exit_cs;
                     }
-                    if ((ret = wc_ecc_import_x963(key, keySz,
-                                                        sigCtx->key.ecc)) < 0) {
+                    ret = wc_EccPublicKeyDecode(key, &idx, sigCtx->key.ecc,
+                                                                         keySz);
+                    if (ret < 0) {
                         WOLFSSL_MSG("ASN Key import error ECC");
                         goto exit_cs;
                     }
@@ -10809,6 +11022,44 @@ int wc_EccPrivateKeyDecode(const byte* input, word32* inOutIdx, ecc_key* key,
 }
 
 
+#ifdef WOLFSSL_CUSTOM_CURVES
+static void ByteToHex(byte n, char* str)
+{
+    static const char hexChar[] = { '0', '1', '2', '3', '4', '5', '6', '7',
+                                    '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+    str[0] = hexChar[n >> 4];
+    str[1] = hexChar[n & 0xf];
+}
+
+static int ASNToHexString(const byte* input, word32* inOutIdx, char** out,
+                          word32 inSz, void* heap, int heapType)
+{
+    int len;
+    int i;
+    char* str;
+
+    if (input[*inOutIdx] == ASN_INTEGER) {
+        if (GetASNInt(input, inOutIdx, &len, inSz) < 0)
+            return ASN_PARSE_E;
+    }
+    else {
+        if (GetOctetString(input, inOutIdx, &len, inSz) < 0)
+            return ASN_PARSE_E;
+    }
+
+    str = (char*)XMALLOC(len * 2 + 1, heap, heapType);
+    for (i=0; i<len; i++)
+        ByteToHex(input[*inOutIdx + i], str + i*2);
+    str[len*2] = '\0';
+
+    *inOutIdx += len;
+    *out = str;
+
+    return 0;
+}
+#endif
+
 int wc_EccPublicKeyDecode(const byte* input, word32* inOutIdx,
                           ecc_key* key, word32 inSz)
 {
@@ -10830,15 +11081,114 @@ int wc_EccPublicKeyDecode(const byte* input, word32* inOutIdx,
     if (ret != 0)
         return ret;
 
-    /* ecc params information */
-    ret = GetObjectId(input, inOutIdx, &oidSum, oidIgnoreType, inSz);
-    if (ret != 0)
-        return ret;
+    if (input[*inOutIdx] == (ASN_SEQUENCE | ASN_CONSTRUCTED)) {
+#ifdef WOLFSSL_CUSTOM_CURVES
+        ecc_set_type* curve;
+        int len;
+        char* point;
 
-    /* get curve id */
-    curve_id = wc_ecc_get_oid(oidSum, NULL, 0);
-    if (curve_id < 0)
-        return ECC_CURVE_OID_E;
+        ret = 0;
+
+        curve = (ecc_set_type*)XMALLOC(sizeof(*curve), key->heap,
+                                                       DYNAMIC_TYPE_ECC_BUFFER);
+        if (curve == NULL)
+            ret = MEMORY_E;
+
+        if (ret == 0) {
+            XMEMSET(curve, 0, sizeof(*curve));
+            curve->name = "Custom";
+            curve->id = ECC_CURVE_CUSTOM;
+
+            if (GetSequence(input, inOutIdx, &length, inSz) < 0)
+                ret = ASN_PARSE_E;
+        }
+
+        if (ret == 0) {
+            GetInteger7Bit(input, inOutIdx, inSz);
+            if (GetSequence(input, inOutIdx, &length, inSz) < 0)
+                ret = ASN_PARSE_E;
+        }
+        if (ret == 0) {
+            SkipObjectId(input, inOutIdx, inSz);
+            ret = ASNToHexString(input, inOutIdx, (char**)&curve->prime, inSz,
+                                            key->heap, DYNAMIC_TYPE_ECC_BUFFER);
+        }
+        if (ret == 0) {
+            curve->size = (int)XSTRLEN(curve->prime) / 2;
+
+            if (GetSequence(input, inOutIdx, &length, inSz) < 0)
+                ret = ASN_PARSE_E;
+        }
+        if (ret == 0) {
+            ret = ASNToHexString(input, inOutIdx, (char**)&curve->Af, inSz,
+                                            key->heap, DYNAMIC_TYPE_ECC_BUFFER);
+        }
+        if (ret == 0) {
+            ret = ASNToHexString(input, inOutIdx, (char**)&curve->Bf, inSz,
+                                            key->heap, DYNAMIC_TYPE_ECC_BUFFER);
+        }
+        if (ret == 0) {
+            if (input[*inOutIdx] == ASN_BIT_STRING) {
+                len = 0;
+                ret = GetASNHeader(input, ASN_BIT_STRING, inOutIdx, &len, inSz);
+                inOutIdx += len;
+            }
+        }
+        if (ret == 0) {
+            ret = ASNToHexString(input, inOutIdx, (char**)&point, inSz,
+                                            key->heap, DYNAMIC_TYPE_ECC_BUFFER);
+        }
+        if (ret == 0) {
+            curve->Gx = (const char*)XMALLOC(curve->size * 2 + 2, key->heap,
+                                                       DYNAMIC_TYPE_ECC_BUFFER);
+            curve->Gy = (const char*)XMALLOC(curve->size * 2 + 2, key->heap,
+                                                       DYNAMIC_TYPE_ECC_BUFFER);
+            if (curve->Gx == NULL || curve->Gy == NULL)
+                ret = MEMORY_E;
+        }
+        if (ret == 0) {
+            XMEMCPY((char*)curve->Gx, point + 2, curve->size * 2);
+            XMEMCPY((char*)curve->Gy, point + curve->size * 2 + 2,
+                                                               curve->size * 2);
+            ((char*)curve->Gx)[curve->size * 2] = '\0';
+            ((char*)curve->Gy)[curve->size * 2] = '\0';
+            XFREE(point, key->heap, DYNAMIC_TYPE_ECC_BUFFER);
+            ret = ASNToHexString(input, inOutIdx, (char**)&curve->order, inSz,
+                                            key->heap, DYNAMIC_TYPE_ECC_BUFFER);
+        }
+        if (ret == 0) {
+            curve->cofactor = GetInteger7Bit(input, inOutIdx, inSz);
+
+            curve->oid = NULL;
+            curve->oidSz = 0;
+            curve->oidSum = 0;
+
+            if (wc_ecc_set_custom_curve(key, curve) < 0) {
+                ret = ASN_PARSE_E;
+            }
+            key->deallocSet = 1;
+            curve = NULL;
+        }
+        if (curve != NULL)
+            wc_ecc_free_curve(curve, key->heap);
+
+        if (ret < 0)
+            return ret;
+#else
+        return ASN_PARSE_E;
+#endif
+    }
+    else {
+        /* ecc params information */
+        ret = GetObjectId(input, inOutIdx, &oidSum, oidIgnoreType, inSz);
+        if (ret != 0)
+            return ret;
+
+        /* get curve id */
+        curve_id = wc_ecc_get_oid(oidSum, NULL, 0);
+        if (curve_id < 0)
+            return ECC_CURVE_OID_E;
+    }
 
     /* key header */
     ret = CheckBitString(input, inOutIdx, NULL, inSz, 1, NULL);

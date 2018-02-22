@@ -338,6 +338,11 @@ void wc_PKCS7_Free(PKCS7* pkcs7)
         return;
 
     wc_PKCS7_FreeDecodedAttrib(pkcs7->decodedAttrib, pkcs7->heap);
+
+#ifdef ASN_BER_TO_DER
+    if (pkcs7->der != NULL)
+        XFREE(pkcs7->der, pkcs7->heap, DYNAMIC_TYPE_PKCS7);
+#endif
 }
 
 
@@ -1375,6 +1380,7 @@ static int wc_PKCS7_EcdsaVerify(PKCS7* pkcs7, byte* sig, int sigSz,
     ecc_key stack_key;
     ecc_key* key = &stack_key;
 #endif
+    word32 idx = 0;
 
     if (pkcs7 == NULL || sig == NULL)
         return BAD_FUNC_ARG;
@@ -1404,7 +1410,8 @@ static int wc_PKCS7_EcdsaVerify(PKCS7* pkcs7, byte* sig, int sigSz,
         return ret;
     }
 
-    if (wc_ecc_import_x963(pkcs7->publicKey, pkcs7->publicKeySz, key) < 0) {
+    if (wc_EccPublicKeyDecode(pkcs7->publicKey, &idx, key,
+                                                      pkcs7->publicKeySz) < 0) {
         WOLFSSL_MSG("ASN ECDSA key decode error");
 #ifdef WOLFSSL_SMALL_STACK
         XFREE(digest, NULL, DYNAMIC_TYPE_TMP_BUFFER);
@@ -1839,6 +1846,9 @@ int wc_PKCS7_VerifySignedData(PKCS7* pkcs7, byte* pkiMsg, word32 pkiMsgSz)
     byte* signedAttrib = NULL;
     int contentSz = 0, sigSz = 0, certSz = 0, signedAttribSz = 0;
     byte degenerate;
+#ifdef ASN_BER_TO_DER
+    byte* der;
+#endif
 
     if (pkcs7 == NULL || pkiMsg == NULL || pkiMsgSz == 0)
         return BAD_FUNC_ARG;
@@ -1848,6 +1858,30 @@ int wc_PKCS7_VerifySignedData(PKCS7* pkcs7, byte* pkiMsg, word32 pkiMsgSz)
     /* Get the contentInfo sequence */
     if (GetSequence(pkiMsg, &idx, &length, pkiMsgSz) < 0)
         return ASN_PARSE_E;
+
+    if (length == 0 && pkiMsg[idx-1] == 0x80) {
+#ifdef ASN_BER_TO_DER
+        word32 len;
+
+        ret = wc_BerToDer(pkiMsg, pkiMsgSz, NULL, &len);
+        if (ret != LENGTH_ONLY_E)
+            return ret;
+        pkcs7->der = (byte*)XMALLOC(len, pkcs7->heap, DYNAMIC_TYPE_PKCS7);
+        if (pkcs7->der == NULL)
+            return MEMORY_E;
+        ret = wc_BerToDer(pkiMsg, pkiMsgSz, pkcs7->der, &len);
+        if (ret < 0)
+            return ret;
+
+        pkiMsg = pkcs7->der;
+        pkiMsgSz = len;
+        idx = 0;
+        if (GetSequence(pkiMsg, &idx, &length, pkiMsgSz) < 0)
+            return ASN_PARSE_E;
+#else
+        return BER_INDEF_E;
+#endif
+    }
 
     /* Get the contentInfo contentType */
     if (wc_GetContentType(pkiMsg, &idx, &contentType, pkiMsgSz) < 0)
@@ -1959,8 +1993,14 @@ int wc_PKCS7_VerifySignedData(PKCS7* pkcs7, byte* pkiMsg, word32 pkiMsgSz)
                 certSz += (certIdx - idx);
             }
 
+#ifdef ASN_BER_TO_DER
+            der = pkcs7->der;
+#endif
             /* This will reset PKCS7 structure and then set the certificate */
             wc_PKCS7_InitWithCert(pkcs7, cert, certSz);
+#ifdef ASN_BER_TO_DER
+            pkcs7->der = der;
+#endif
 
             /* iterate through any additional certificates */
             if (MAX_PKCS7_CERTS > 0) {
@@ -2308,9 +2348,11 @@ static int wc_PKCS7_KariParseRecipCert(WC_PKCS7_KARI* kari, const byte* cert,
     /* get recip public key */
     if (kari->direction == WC_PKCS7_ENCODE) {
 
-        ret = wc_ecc_import_x963(kari->decoded->publicKey,
-                                 kari->decoded->pubKeySize,
-                                 kari->recipKey);
+        idx = 0;
+        ret = wc_EccPublicKeyDecode(kari->decoded->publicKey, &idx,
+                                    kari->recipKey, kari->decoded->pubKeySize);
+        if (ret != 0)
+            return ret;
     }
     /* get recip private key */
     else if (kari->direction == WC_PKCS7_DECODE) {
@@ -4299,6 +4341,7 @@ WOLFSSL_API int wc_PKCS7_DecodeEnvelopedData(PKCS7* pkcs7, byte* pkiMsg,
     int encryptedContentSz;
     byte padLen;
     byte* encryptedContent = NULL;
+    int explicitOctet;
 
     if (pkcs7 == NULL || pkcs7->singleCert == NULL ||
         pkcs7->singleCertSz == 0 || pkcs7->privateKey == NULL ||
@@ -4312,6 +4355,30 @@ WOLFSSL_API int wc_PKCS7_DecodeEnvelopedData(PKCS7* pkcs7, byte* pkiMsg,
     /* read past ContentInfo, verify type is envelopedData */
     if (GetSequence(pkiMsg, &idx, &length, pkiMsgSz) < 0)
         return ASN_PARSE_E;
+
+    if (length == 0 && pkiMsg[idx-1] == 0x80) {
+#ifdef ASN_BER_TO_DER
+        word32 len;
+
+        ret = wc_BerToDer(pkiMsg, pkiMsgSz, NULL, &len);
+        if (ret != LENGTH_ONLY_E)
+            return ret;
+        pkcs7->der = (byte*)XMALLOC(len, pkcs7->heap, DYNAMIC_TYPE_PKCS7);
+        if (pkcs7->der == NULL)
+            return MEMORY_E;
+        ret = wc_BerToDer(pkiMsg, pkiMsgSz, pkcs7->der, &len);
+        if (ret < 0)
+            return ret;
+
+        pkiMsg = pkcs7->der;
+        pkiMsgSz = len;
+        idx = 0;
+        if (GetSequence(pkiMsg, &idx, &length, pkiMsgSz) < 0)
+            return ASN_PARSE_E;
+#else
+        return BER_INDEF_E;
+#endif
+    }
 
     if (wc_GetContentType(pkiMsg, &idx, &contentType, pkiMsgSz) < 0)
         return ASN_PARSE_E;
@@ -4435,19 +4502,39 @@ WOLFSSL_API int wc_PKCS7_DecodeEnvelopedData(PKCS7* pkcs7, byte* pkiMsg,
     XMEMCPY(tmpIv, &pkiMsg[idx], length);
     idx += length;
 
+    explicitOctet = pkiMsg[idx] == (ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED | 0);
+
     /* read encryptedContent, cont[0] */
-    if (pkiMsg[idx++] != (ASN_CONTEXT_SPECIFIC | 0)) {
+    if (pkiMsg[idx] != (ASN_CONTEXT_SPECIFIC | 0) &&
+        pkiMsg[idx] != (ASN_CONTEXT_SPECIFIC | ASN_CONSTRUCTED | 0)) {
 #ifdef WOLFSSL_SMALL_STACK
         XFREE(decryptedKey, NULL, DYNAMIC_TYPE_PKCS7);
 #endif
         return ASN_PARSE_E;
     }
+    idx++;
 
     if (GetLength(pkiMsg, &idx, &encryptedContentSz, pkiMsgSz) <= 0) {
 #ifdef WOLFSSL_SMALL_STACK
         XFREE(decryptedKey, NULL, DYNAMIC_TYPE_PKCS7);
 #endif
         return ASN_PARSE_E;
+    }
+
+    if (explicitOctet) {
+        if (pkiMsg[idx++] != ASN_OCTET_STRING) {
+#ifdef WOLFSSL_SMALL_STACK
+            XFREE(decryptedKey, NULL, DYNAMIC_TYPE_PKCS7);
+#endif
+            return ASN_PARSE_E;
+        }
+
+        if (GetLength(pkiMsg, &idx, &encryptedContentSz, pkiMsgSz) <= 0) {
+#ifdef WOLFSSL_SMALL_STACK
+            XFREE(decryptedKey, NULL, DYNAMIC_TYPE_PKCS7);
+#endif
+            return ASN_PARSE_E;
+        }
     }
 
     encryptedContent = (byte*)XMALLOC(encryptedContentSz, pkcs7->heap,
