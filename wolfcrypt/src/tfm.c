@@ -478,8 +478,10 @@ void fp_mul_comba(fp_int *A, fp_int *B, fp_int *C)
 
    /* Always take branch to use tmp variable. This avoids a cache attack for
     * determining if C equals A */
-   fp_init(&tmp);
-   dst = &tmp;
+   if (1) {
+      fp_init(&tmp);
+      dst = &tmp;
+   }
 
    for (ix = 0; ix < pa; ix++) {
       /* get offsets into the two bignums */
@@ -498,7 +500,6 @@ void fp_mul_comba(fp_int *A, fp_int *B, fp_int *C)
       /* execute loop */
       COMBA_FORWARD;
       for (iz = 0; iz < iy; ++iz) {
-          /* "conditional expression = constant" warning here */
           fp_digit _tmpx = *tmpx++;
           fp_digit _tmpy = *tmpy--;
           MULADD(_tmpx, _tmpy);
