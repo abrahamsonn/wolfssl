@@ -8986,7 +8986,8 @@ int ProcessPeerCerts(WOLFSSL* ssl, byte* input, word32* inOutIdx,
                     args->idx += extSz;
                     listSz -= extSz + OPAQUE16_LEN;
                     ret = TLSX_Parse(ssl, args->exts[args->totalCerts].buffer,
-                        args->exts[args->totalCerts].length, certificate, NULL);
+                        (word16) args->exts[args->totalCerts].length,
+                        certificate, NULL);
                     if (ret < 0)
                         return ret;
                 }
