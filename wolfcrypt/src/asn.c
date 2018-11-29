@@ -3122,16 +3122,18 @@ int TraditionalEnc(byte* key, word32 keySz, byte* out, word32* outSz,
 #endif
     byte cbcIv[MAX_IV_SIZE];
     byte *pkcs8Key = NULL;
-    word32 pkcs8KeySz, padSz;
-    int algId;
+    word32 pkcs8KeySz = 0;
+    word32 padSz = 0;
+    int algId = 0;
     const byte* curveOid = NULL;
     word32 curveOidSz = 0;
-    const byte* pbeOid;
-    word32 pbeOidSz;
+    const byte* pbeOid = NULL;
+    word32 pbeOidSz = 0;
     const byte* encOid = NULL;
     int encOidSz = 0;
-    word32 pbeLen, kdfLen = 0, encLen = 0;
-    word32 innerLen, outerLen;
+    word32 pbeLen = 0, kdfLen = 0, encLen = 0;
+    word32 innerLen = 0;
+    word32 outerLen;
 
     ret = CheckAlgo(vPKCS, vAlgo, &id, &version, &blockSz);
     /* create random salt if one not provided */
