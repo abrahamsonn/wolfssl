@@ -28250,8 +28250,8 @@ static int pem_read_bio_key(WOLFSSL_BIO* bio, pem_password_cb* cb, void* pass,
     pem_password_cb* localCb = cb;
 
     char* mem = NULL;
-    int memSz;
-    int ret;
+    int memSz = 0;
+    int ret = 0;
 
     if ((ret = wolfSSL_BIO_pending(bio)) > 0) {
         memSz = ret;
