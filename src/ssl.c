@@ -29913,7 +29913,7 @@ void* wolfSSL_GetDhAgreeCtx(WOLFSSL* ssl)
         int headerLen;
         int headerFound = 0;
         unsigned char* der = NULL;
-        word32 derLen;
+        word32 derLen = 0;
 
         if (bio == NULL || name == NULL || header == NULL || data == NULL ||
                                                                   len == NULL) {
