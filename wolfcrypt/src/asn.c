@@ -3145,8 +3145,7 @@ int TraditionalEnc(byte* key, word32 keySz, byte* out, word32* outSz,
     const byte* encOid = NULL;
     int encOidSz = 0;
     word32 pbeLen = 0, kdfLen = 0, encLen = 0;
-    word32 innerLen = 0;
-    word32 outerLen;
+    word32 innerLen = 0, outerLen;
 
     ret = CheckAlgo(vPKCS, vAlgo, &id, &version, &blockSz);
     /* create random salt if one not provided */
