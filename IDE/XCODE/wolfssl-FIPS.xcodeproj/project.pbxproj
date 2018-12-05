@@ -1108,7 +1108,7 @@
 		52B1344516F3C9E800C07B32 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0460;
+				LastUpgradeCheck = 1010;
 				ORGANIZATIONNAME = "wolfSSL Inc";
 			};
 			buildConfigurationList = 52B1344816F3C9E800C07B32 /* Build configuration list for PBXProject "wolfssl-FIPS" */;
@@ -1368,7 +1368,7 @@
 		A4A54E9F1BC5C3E0002866CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = YES;
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				DSTROOT = /tmp/wolfssl_ios.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
@@ -1397,7 +1397,7 @@
 		A4A54EA01BC5C3E0002866CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = YES;
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_LINK_OBJC_RUNTIME = NO;
 				DSTROOT = /tmp/wolfssl_ios.dst;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
