@@ -4,9 +4,12 @@ This directory contains the following files:
 
 1. `wolfssl.xcworkspace` -- workspace with library and testsuite client
 2. `wolfssl_testsuite.xcodeproj` -- project to run the testsuite.
-3. `wolfssl.xcodeproj` -- project to build OS/x and iOS libraries for wolfSSL and/or wolfCrypt
-4. `wolfssl-FIPS.xcodeproj` -- project to build wolfSSL and wolfCrypt-FIPS if available
-5. `user_settings.h` -- custom library settings, which are shared across projects
+3. `wolfssl.xcodeproj` -- project to build OS/x and iOS libraries for wolfSSL
+   and/or wolfCrypt
+4. `wolfssl-FIPS.xcodeproj` -- project to build wolfSSL and wolfCrypt-FIPS if
+   available
+5. `user_settings.h` -- custom library settings, which are shared across
+   projects
 
 The library will output as `libwolfssl_osx.a` or 'libwolfssl_ios.a` depending on
 the target. It will also copy the wolfSSL/wolfCrypt (and the CyaSSL/CtaoCrypt
@@ -15,7 +18,8 @@ compatibility) headers into an `include` directory located in
 
 For the library and testsuite to link properly the build location needs to be
 configured as realitive to workspace.
-1. File -> Workspace Settings (or Xcode -> Preferences -> Locations -> Locations)
+1. File -> Workspace Settings (or Xcode -> Preferences -> Locations ->
+   Locations)
 2. Derived Data -> Advanced
 3. Custom -> Relative to Workspace
 4. Products -> Build/Products
@@ -65,10 +69,10 @@ i386 for the iphones.
 
 # Installing libwolfssl.a
 
-Simply drag the file libwolfssl_XXX_.a and the directory `include` and drop it into
-your project file list pane where it makes sense for you. Allow it to copy the
-files over to the project directory. This should automatically add the library
-to the list of libraries to link against.
+Simply drag the file libwolfssl_XXX_.a and the directory `include` and drop it
+into your project file list pane where it makes sense for you. Allow it to copy
+the files over to the project directory. This should automatically add the
+library to the list of libraries to link against.
 
 Click on your project target, then the "Build Phases" tab. On the targets list
 click your target. Click the disclosure triangle on the section "Link Binary
