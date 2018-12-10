@@ -11,9 +11,9 @@ This directory contains the following files:
 5. `user_settings.h` -- custom library settings, which are shared across
    projects
 
-The library will output as `libwolfssl_osx.a` or 'libwolfssl_ios.a` depending on
-the target. It will also copy the wolfSSL/wolfCrypt (and the CyaSSL/CtaoCrypt
-compatibility) headers into an `include` directory located in
+The library will output as `libwolfssl_osx.a` or 'libwolfssl_ios.a` depending
+on the target. It will also copy the wolfSSL/wolfCrypt (and the
+CyaSSL/CtaoCrypt compatibility) headers into an `include` directory located in
 `Build/Products/Debug` or `Build/Products/Release`.
 
 For the library and testsuite to link properly the build location needs to be
@@ -31,7 +31,7 @@ multiple projects.
 If needed the Xcode preprocessors can be modifed with these steps:
 1. Click on the Project in "Project Navigator".
 2. Click on the "Build Settings" tab.
-3. Scroll down to the "Apple LLVM 6.0 - Preprocessing" section.
+3. Scroll down to the "Apple Clang - Preprocessing" section.
 4. Open the disclosure for "Preprocessor Macros" and use the "+" and
 "-" buttons to modify. Remember to do this for both Debug and Release.
 
@@ -45,10 +45,10 @@ To use the FIPS version, one must have the FIPS sources. The project won't
 build without them. Please contact info@wolfssl.com for more information about
 wolfCrypt with FIPS.
 
-By default, this builds the wolfSSL and wolfCrypt with FIPS library. The default
-configuration enables the settings required for FIPS. Others may be turned on.
-The project also ensures the FIPS related objects are linked in the proper
-order.
+By default, this builds the wolfSSL and wolfCrypt with FIPS library. The
+default configuration enables the settings required for FIPS. Others may be
+turned on.  The project also ensures the FIPS related objects are linked in the
+proper order.
 
 
 # Building libwolfssl.a
