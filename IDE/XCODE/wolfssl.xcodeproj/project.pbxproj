@@ -319,6 +319,7 @@
 		522DBE0F1B7927A50031F454 /* wc_encrypt.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 522DBE0E1B7927290031F454 /* wc_encrypt.h */; };
 		525BE5341B3869110054BBCD /* hash.c in Sources */ = {isa = PBXBuildFile; fileRef = 525BE5331B3869110054BBCD /* hash.c */; };
 		525BE5361B3869780054BBCD /* hash.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 525BE5351B3869430054BBCD /* hash.h */; };
+		78DD467F21C86C4600496DD4 /* tls13.c in Sources */ = {isa = PBXBuildFile; fileRef = 78DD467E21C86C4600496DD4 /* tls13.c */; };
 		A4F318501BC58B1700FDF2BB /* dsa.c in Sources */ = {isa = PBXBuildFile; fileRef = 5216461A1A8992CC0062516A /* dsa.c */; };
 		A4F318511BC58B1700FDF2BB /* logging.c in Sources */ = {isa = PBXBuildFile; fileRef = 521646201A8992CC0062516A /* logging.c */; };
 		A4F318521BC58B1700FDF2BB /* sha.c in Sources */ = {isa = PBXBuildFile; fileRef = 5216462D1A8992CC0062516A /* sha.c */; };
@@ -1072,6 +1073,7 @@
 		525BE5331B3869110054BBCD /* hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = hash.c; path = ../../wolfcrypt/src/hash.c; sourceTree = "<group>"; };
 		525BE5351B3869430054BBCD /* hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = hash.h; path = ../../wolfssl/wolfcrypt/hash.h; sourceTree = "<group>"; };
 		52B1344D16F3C9E800C07B32 /* libwolfssl_ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libwolfssl_ios.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		78DD467E21C86C4600496DD4 /* tls13.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = tls13.c; path = ../../src/tls13.c; sourceTree = "<group>"; };
 		A45EA7091BC5995E00A8614A /* user_settings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = user_settings.h; sourceTree = "<group>"; };
 		A4F318EE1BC58B1700FDF2BB /* libwolfssl_osx.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libwolfssl_osx.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -1317,6 +1319,7 @@
 		52B1344416F3C9E800C07B32 = {
 			isa = PBXGroup;
 			children = (
+				78DD467E21C86C4600496DD4 /* tls13.c */,
 				1E8BEB88212F5E0A0063DCC1 /* sp_c32.c */,
 				1E8BEB85212F4F010063DCC1 /* fe_low_mem.c */,
 				1E8BEB84212F4F010063DCC1 /* fe_operations.c */,
@@ -1500,6 +1503,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				78DD467F21C86C4600496DD4 /* tls13.c in Sources */,
 				5216463B1A8992CC0062516A /* dsa.c in Sources */,
 				521646411A8992CC0062516A /* logging.c in Sources */,
 				5216464E1A8992CC0062516A /* sha.c in Sources */,
