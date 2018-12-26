@@ -35,6 +35,19 @@ If needed the Xcode preprocessors can be modifed with these steps:
 4. Open the disclosure for "Preprocessor Macros" and use the "+" and
 "-" buttons to modify. Remember to do this for both Debug and Release.
 
+Additionally, if the options for using TLS 1.3 are listed in
+the `user_settings.h` file, then the file `tls13.c` will need to be added to
+the list of compiled sources for the testsuite Xcode project. This can be done
+with the following steps:
+1. Select the wolfSSL_testsuite project in the "Project Navigator"
+2. Select the "Build Phases" tab
+3. Expand the "Compile Sources" option. You can see the list of the example
+   applications that are being built for the wolfSSL library testsuite in this
+   location.
+4. Select "+" and navigate to the location of the `tls13.c` file. If nothing
+   has been rearranged, then this file will be located in
+   `<wolfssl-root>/src/tls13.c`.
+
 ## wolfSSL
 
 This project should build wolfSSL and wolfCrypt using the default settings.
