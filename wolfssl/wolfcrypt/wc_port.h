@@ -74,6 +74,8 @@
     /* do nothing */
 #elif defined(FREESCALE_FREE_RTOS)
     #include "fsl_os_abstraction.h"
+#elif defined(WOLFSSL_VXWORKS)
+    #include <semLib.h>
 #elif defined(WOLFSSL_uITRON4)
     #include "stddef.h"
     #include "kernel.h"
@@ -151,6 +153,8 @@
         typedef MUTEX_STRUCT wolfSSL_Mutex;
     #elif defined(FREESCALE_FREE_RTOS)
         typedef mutex_t wolfSSL_Mutex;
+    #elif defined(WOLFSSL_VXWORKS)
+        typedef SEM_ID wolfSSL_Mutex;
     #elif defined(WOLFSSL_uITRON4)
         typedef struct wolfSSL_Mutex {
             T_CSEM sem ;
@@ -439,8 +443,7 @@ WOLFSSL_API int wolfCrypt_Cleanup(void);
     #endif
     #define XGMTIME(c, t)   gmtime((c))
 
-#elif defined(WOLFSSL_ATMEL)
-    extern long atmel_get_curr_time_and_date(long* tm);
+#elif defined(WOLFSSL_ATMEL) && defined(WOLFSSL_ATMEL_TIME)
     #define XTIME(t1)       atmel_get_curr_time_and_date((t1))
     #define WOLFSSL_GMTIME
     #define USE_WOLF_TM

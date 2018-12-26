@@ -784,7 +784,8 @@ int GetInt(mp_int* mpi, const byte* input, word32* inOutIdx, word32 maxIdx)
     return 0;
 }
 
-#if !defined(WOLFSSL_KEY_GEN) && !defined(OPENSSL_EXTRA) && defined(RSA_LOW_MEM)
+#if (!defined(WOLFSSL_KEY_GEN) && !defined(OPENSSL_EXTRA) && defined(RSA_LOW_MEM)) \
+    || defined(WOLFSSL_RSA_PUBLIC_ONLY)
 #if !defined(NO_RSA) && !defined(HAVE_USER_RSA)
 static int SkipInt(const byte* input, word32* inOutIdx, word32 maxIdx)
 {
@@ -2241,10 +2242,19 @@ int wc_RsaPrivateKeyDecode(const byte* input, word32* inOutIdx, RsaKey* key,
 
     if (GetInt(&key->n,  input, inOutIdx, inSz) < 0 ||
         GetInt(&key->e,  input, inOutIdx, inSz) < 0 ||
+#ifndef WOLFSSL_RSA_PUBLIC_ONLY
         GetInt(&key->d,  input, inOutIdx, inSz) < 0 ||
         GetInt(&key->p,  input, inOutIdx, inSz) < 0 ||
-        GetInt(&key->q,  input, inOutIdx, inSz) < 0)   return ASN_RSA_KEY_E;
-#if defined(WOLFSSL_KEY_GEN) || defined(OPENSSL_EXTRA) || !defined(RSA_LOW_MEM)
+        GetInt(&key->q,  input, inOutIdx, inSz) < 0)
+#else
+        SkipInt(input, inOutIdx, inSz) < 0 ||
+        SkipInt(input, inOutIdx, inSz) < 0 ||
+        SkipInt(input, inOutIdx, inSz) < 0 )
+
+#endif
+            return ASN_RSA_KEY_E;
+#if (defined(WOLFSSL_KEY_GEN) || defined(OPENSSL_EXTRA) || !defined(RSA_LOW_MEM)) \
+    && !defined(WOLFSSL_RSA_PUBLIC_ONLY)
     if (GetInt(&key->dP, input, inOutIdx, inSz) < 0 ||
         GetInt(&key->dQ, input, inOutIdx, inSz) < 0 ||
         GetInt(&key->u,  input, inOutIdx, inSz) < 0 )  return ASN_RSA_KEY_E;
@@ -5217,7 +5227,7 @@ int GetAsnTimeString(void* currTime, byte* buf, word32 len)
 #endif
     byte* data_ptr  = buf;
     word32 data_len = 0;
-    int year, mon, day, hour, min, sec;
+    int year, mon, day, hour, mini, sec;
 
     WOLFSSL_ENTER("SetAsnTimeString");
 
@@ -5253,10 +5263,10 @@ int GetAsnTimeString(void* currTime, byte* buf, word32 len)
         mon  = ts->tm_mon + 1;
         day  = ts->tm_mday;
         hour = ts->tm_hour;
-        min  = ts->tm_min;
+        mini = ts->tm_min;
         sec  = ts->tm_sec;
         XSNPRINTF((char *)utc_str, ASN_UTC_TIME_SIZE,
-                  "%02d%02d%02d%02d%02d%02dZ", year, mon, day, hour, min, sec);
+                  "%02d%02d%02d%02d%02d%02dZ", year, mon, day, hour, mini, sec);
         *data_ptr = (byte) ASN_UTC_TIME; data_ptr++;
         /* -1 below excludes null terminator */
         *data_ptr = (byte) ASN_UTC_TIME_SIZE - 1; data_ptr++;
@@ -5274,10 +5284,10 @@ int GetAsnTimeString(void* currTime, byte* buf, word32 len)
         mon  = ts->tm_mon + 1;
         day  = ts->tm_mday;
         hour = ts->tm_hour;
-        min  = ts->tm_min;
+        mini = ts->tm_min;
         sec  = ts->tm_sec;
         XSNPRINTF((char *)gt_str, ASN_GENERALIZED_TIME_SIZE,
-                  "%4d%02d%02d%02d%02d%02dZ", year, mon, day, hour, min, sec);
+                  "%4d%02d%02d%02d%02d%02dZ", year, mon, day, hour, mini, sec);
         *data_ptr = (byte) ASN_GENERALIZED_TIME; data_ptr++;
         /* -1 below excludes null terminator */
         *data_ptr = (byte) ASN_GENERALIZED_TIME_SIZE - 1; data_ptr++;
@@ -6134,7 +6144,7 @@ static int ConfirmSignature(SignatureCtx* sigCtx,
 
         #ifdef WOLFSSL_ASYNC_CRYPT
             if (sigCtx->devId != INVALID_DEVID && sigCtx->asyncDev && sigCtx->asyncCtx) {
-                /* make sure event is intialized */
+                /* make sure event is initialized */
                 WOLF_EVENT* event = &sigCtx->asyncDev->event;
                 ret = wolfAsync_EventInit(event, WOLF_EVENT_TYPE_ASYNC_WOLFSSL,
                     sigCtx->asyncCtx, WC_ASYNC_FLAG_CALL_AGAIN);
@@ -9057,8 +9067,9 @@ int PemToDer(const unsigned char* buff, long longSz, int type,
 
                 if (ret >= 0) {
                     der->length = ret;
-                    if (algId == ECDSAk)
+                    if ((algId == ECDSAk) && (eccKey != NULL)) {
                         *eccKey = 1;
+                    }
                     ret = 0;
                 }
             #else
@@ -9253,15 +9264,22 @@ int wc_PemCertToDer(const char* fileName, unsigned char* derBuf, int derSz)
     int    dynamic = 0;
     int    ret     = 0;
     long   sz      = 0;
-    XFILE  file    = XFOPEN(fileName, "rb");
+    XFILE  file;
     DerBuffer* converted = NULL;
 
     WOLFSSL_ENTER("wc_PemCertToDer");
 
-    if (file == XBADFILE) {
-        ret = BUFFER_E;
+    if (fileName == NULL) {
+        ret = BAD_FUNC_ARG;
     }
     else {
+        file = XFOPEN(fileName, "rb");
+        if (file == XBADFILE) {
+            ret = BUFFER_E;
+        }
+    }
+
+    if (ret == 0) {
         if(XFSEEK(file, 0, XSEEK_END) != 0)
             ret = BUFFER_E;
         sz = XFTELL(file);
@@ -9327,15 +9345,22 @@ int wc_PemPubKeyToDer(const char* fileName,
     int    dynamic = 0;
     int    ret     = 0;
     long   sz      = 0;
-    XFILE  file    = XFOPEN(fileName, "rb");
+    XFILE  file;
     DerBuffer* converted = NULL;
 
     WOLFSSL_ENTER("wc_PemPubKeyToDer");
 
-    if (file == XBADFILE) {
-        ret = BUFFER_E;
+    if (fileName == NULL) {
+        ret = BAD_FUNC_ARG;
     }
     else {
+        file = XFOPEN(fileName, "rb");
+        if (file == XBADFILE) {
+            ret = BUFFER_E;
+        }
+    }
+
+    if (ret == 0) {
         if(XFSEEK(file, 0, XSEEK_END) != 0)
             ret = BUFFER_E;
         sz = XFTELL(file);
@@ -13018,8 +13043,13 @@ int wc_SetIssuer(Cert* cert, const char* issuerFile)
 {
     int         ret;
     int         derSz;
-    byte*       der = (byte*)XMALLOC(EIGHTK_BUF, cert->heap, DYNAMIC_TYPE_CERT);
+    byte*       der;
 
+    if (cert == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    der = (byte*)XMALLOC(EIGHTK_BUF, cert->heap, DYNAMIC_TYPE_CERT);
     if (der == NULL) {
         WOLFSSL_MSG("wc_SetIssuer OOF Problem");
         return MEMORY_E;
@@ -13038,12 +13068,18 @@ int wc_SetSubject(Cert* cert, const char* subjectFile)
 {
     int         ret;
     int         derSz;
-    byte*       der = (byte*)XMALLOC(EIGHTK_BUF, cert->heap, DYNAMIC_TYPE_CERT);
+    byte*       der;
 
+    if (cert == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    der = (byte*)XMALLOC(EIGHTK_BUF, cert->heap, DYNAMIC_TYPE_CERT);
     if (der == NULL) {
         WOLFSSL_MSG("wc_SetSubject OOF Problem");
         return MEMORY_E;
     }
+
     derSz = wc_PemCertToDer(subjectFile, der, EIGHTK_BUF);
     ret = SetNameFromCert(&cert->subject, der, derSz);
     XFREE(der, cert->heap, DYNAMIC_TYPE_CERT);
@@ -13058,8 +13094,13 @@ int wc_SetAltNames(Cert* cert, const char* file)
 {
     int         ret;
     int         derSz;
-    byte*       der = (byte*)XMALLOC(EIGHTK_BUF, cert->heap, DYNAMIC_TYPE_CERT);
+    byte*       der;
 
+    if (cert == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
+    der = (byte*)XMALLOC(EIGHTK_BUF, cert->heap, DYNAMIC_TYPE_CERT);
     if (der == NULL) {
         WOLFSSL_MSG("wc_SetAltNames OOF Problem");
         return MEMORY_E;
@@ -13078,6 +13119,10 @@ int wc_SetAltNames(Cert* cert, const char* file)
 /* Set cert issuer from DER buffer */
 int wc_SetIssuerBuffer(Cert* cert, const byte* der, int derSz)
 {
+    if (cert == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
     cert->selfSigned = 0;
     return SetNameFromCert(&cert->issuer, der, derSz);
 }
@@ -13085,6 +13130,10 @@ int wc_SetIssuerBuffer(Cert* cert, const byte* der, int derSz)
 /* Set cert subject from DER buffer */
 int wc_SetSubjectBuffer(Cert* cert, const byte* der, int derSz)
 {
+    if (cert == NULL) {
+        return BAD_FUNC_ARG;
+    }
+
     return SetNameFromCert(&cert->subject, der, derSz);
 }
 #ifdef WOLFSSL_CERT_EXT
@@ -14617,9 +14666,11 @@ void FreeOcspRequest(OcspRequest* req)
     if (req) {
         if (req->serial)
             XFREE(req->serial, req->heap, DYNAMIC_TYPE_OCSP_REQUEST);
+        req->serial = NULL;
 
         if (req->url)
             XFREE(req->url, req->heap, DYNAMIC_TYPE_OCSP_REQUEST);
+        req->url = NULL;
     }
 }
 
