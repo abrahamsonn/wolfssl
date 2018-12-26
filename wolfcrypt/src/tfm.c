@@ -1196,14 +1196,79 @@ int fp_addmod(fp_int *a, fp_int *b, fp_int *c, fp_int *d)
 
 #ifdef WC_RSA_NONBLOCK
 
+#ifdef WC_RSA_NONBLOCK_TIME
+  /* User can override the check-time at build-time using the
+   * FP_EXPTMOD_NB_CHECKTIME macro to define your own function */
+  #ifndef FP_EXPTMOD_NB_CHECKTIME
+    /* instruction count for each type of operation */
+    /* array lookup is using TFM_EXPTMOD_NB_* states */
+    static const word32 exptModNbInst[TFM_EXPTMOD_NB_COUNT] = {
+    #ifdef TFM_PPC32
+      #ifdef _DEBUG
+        11098, 8701, 3971, 178394, 858093, 1040, 822, 178056, 181574, 90883, 184339, 236813
+      #else
+        7050,  2554, 3187, 43178,  200422, 384,  275, 43024,  43550,  30450, 46270,  61376
+      #endif
+    #elif defined(TFM_X86_64)
+      #ifdef _DEBUG
+        954, 2377, 858, 19027, 90840, 287, 407, 20140, 7874,  11385, 8005,  6151
+      #else
+        765, 1007, 771, 5216,  34993, 248, 193, 4975,  4201,  3947,  4275,  3811
+      #endif
+    #else /* software only fast math */
+      #ifdef _DEBUG
+        798, 2245, 802, 16657, 66920, 352, 186, 16997, 16145, 12789, 16742, 15006
+      #else
+        775, 1084, 783, 4692,  37510, 207, 183, 4374,  4392,  3097,  4442,  4079
+      #endif
+    #endif
+    };
+
+    static int fp_exptmod_nb_checktime(exptModNb_t* nb)
+    {
+      word32 totalInst;
+
+      /* if no max time has been set then stop (do not block) */
+      if (nb->maxBlockInst == 0 || nb->state >= TFM_EXPTMOD_NB_COUNT) {
+        return TFM_EXPTMOD_NB_STOP;
+      }
+
+      /* if instruction table not set then use maxBlockInst as simple counter */
+      if (exptModNbInst[nb->state] == 0) {
+        if (++nb->totalInst < nb->maxBlockInst)
+          return TFM_EXPTMOD_NB_CONTINUE;
+
+        nb->totalInst = 0; /* reset counter */
+        return TFM_EXPTMOD_NB_STOP;
+      }
+
+      /* get total instruction count including next operation */
+      totalInst = nb->totalInst + exptModNbInst[nb->state];
+      /* if the next operation can completed within the maximum then continue */
+      if (totalInst <= nb->maxBlockInst) {
+        return TFM_EXPTMOD_NB_CONTINUE;
+      }
+
+      return TFM_EXPTMOD_NB_STOP;
+    }
+    #define FP_EXPTMOD_NB_CHECKTIME(nb) fp_exptmod_nb_checktime((nb))
+  #endif /* !FP_EXPTMOD_NB_CHECKTIME */
+#endif /* WC_RSA_NONBLOCK_TIME */
+
 /* non-blocking version of timing resistant fp_exptmod function */
 /* supports cache resistance */
 int fp_exptmod_nb(exptModNb_t* nb, fp_int* G, fp_int* X, fp_int* P, fp_int* Y)
 {
-  int err;
+  int err, ret = FP_WOULDBLOCK;
 
   if (nb == NULL)
     return FP_VAL;
+
+#ifdef WC_RSA_NONBLOCK_TIME
+  nb->totalInst = 0;
+  do {
+    nb->totalInst += exptModNbInst[nb->state];
+#endif
 
   switch (nb->state) {
   case TFM_EXPTMOD_NB_INIT:
@@ -1224,7 +1289,7 @@ int fp_exptmod_nb(exptModNb_t* nb, fp_int* G, fp_int* X, fp_int* P, fp_int* Y)
 
   case TFM_EXPTMOD_NB_MONT:
     /* mod m -> R[0] */
-    fp_montgomery_calc_normalization (&nb->R[0], P);
+    fp_montgomery_calc_normalization(&nb->R[0], P);
 
     nb->state = TFM_EXPTMOD_NB_MONT_RED;
     break;
@@ -1338,10 +1403,17 @@ int fp_exptmod_nb(exptModNb_t* nb, fp_int* G, fp_int* X, fp_int* P, fp_int* Y)
     fp_copy(&nb->R[0], Y);
 
     nb->state = TFM_EXPTMOD_NB_INIT;
-    return FP_OKAY;
+    ret = FP_OKAY;
+    break;
   } /* switch */
 
-  return FP_WOULDBLOCK;
+#ifdef WC_RSA_NONBLOCK_TIME
+  /* determine if maximum blocking time has been reached */
+  } while (ret == FP_WOULDBLOCK &&
+    FP_EXPTMOD_NB_CHECKTIME(nb) == TFM_EXPTMOD_NB_CONTINUE);
+#endif
+
+  return ret;
 }
 
 #endif /* WC_RSA_NONBLOCK */
@@ -2399,10 +2471,10 @@ void fp_read_unsigned_bin(fp_int *a, const unsigned char *b, int c)
        /* Use Duff's device to unroll the loop. */
        int idx = (c - 1) & ~3;
        switch (c % 4) {
-       case 0:    do { pd[idx+0] = *b++;
-       case 3:         pd[idx+1] = *b++;
-       case 2:         pd[idx+2] = *b++;
-       case 1:         pd[idx+3] = *b++;
+       case 0:    do { pd[idx+0] = *b++; // fallthrough
+       case 3:         pd[idx+1] = *b++; // fallthrough
+       case 2:         pd[idx+2] = *b++; // fallthrough
+       case 1:         pd[idx+3] = *b++; // fallthrough
                      idx -= 4;
                  } while ((c -= 4) > 0);
        }
@@ -2478,6 +2550,48 @@ int fp_to_unsigned_bin(fp_int *a, unsigned char *b)
   XFREE(t, NULL, DYNAMIC_TYPE_TMP_BUFFER);
 #endif
   return FP_OKAY;
+}
+
+int fp_to_unsigned_bin_len(fp_int *a, unsigned char *b, int c)
+{
+#if DIGIT_BIT == 64 || DIGIT_BIT == 32
+  int i, j, x;
+
+  for (x=c-1,j=0,i=0; x >= 0; x--) {
+     b[x] = (unsigned char)(a->dp[i] >> j);
+     j += 8;
+     i += j == DIGIT_BIT;
+     j &= DIGIT_BIT - 1;
+  }
+
+  return FP_OKAY;
+#else
+  int     x;
+#ifndef WOLFSSL_SMALL_STACK
+   fp_int t[1];
+#else
+   fp_int *t;
+#endif
+
+#ifdef WOLFSSL_SMALL_STACK
+   t = (fp_int*)XMALLOC(sizeof(fp_int), NULL, DYNAMIC_TYPE_TMP_BUFFER);
+   if (t == NULL)
+       return FP_MEM;
+#endif
+
+  fp_init_copy(t, a);
+
+  for (x = 0; x < c; x++) {
+      b[x] = (unsigned char) (t->dp[0] & 255);
+      fp_div_2d (t, 8, t, NULL);
+  }
+  fp_reverse (b, x);
+
+#ifdef WOLFSSL_SMALL_STACK
+  XFREE(t, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+#endif
+  return FP_OKAY;
+#endif
 }
 
 int fp_unsigned_bin_size(fp_int *a)
@@ -2965,6 +3079,10 @@ int mp_to_unsigned_bin (mp_int * a, unsigned char *b)
   return fp_to_unsigned_bin(a,b);
 }
 
+int mp_to_unsigned_bin_len(mp_int * a, unsigned char *b, int c)
+{
+  return fp_to_unsigned_bin_len(a, b, c);
+}
 /* reads a unsigned char array, assumes the msb is stored first [big endian] */
 int mp_read_unsigned_bin (mp_int * a, const unsigned char *b, int c)
 {

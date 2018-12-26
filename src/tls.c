@@ -1168,12 +1168,12 @@ static int Hmac_UpdateFinal_CT(Hmac* hmac, byte* digest, const byte* in,
             else if (k < maxLen)
                 b = in[k - WOLFSSL_TLS_HMAC_INNER_SZ];
 
-            b = ctMaskSel(atEoc, b, 0x80);
+            b = ctMaskSel(atEoc, 0x80, b);
             b &= (unsigned char)~(word32)pastEoc;
             b &= ((unsigned char)~(word32)isOutBlock) | isEocBlock;
 
             if (j >= blockSz - 8) {
-                b = ctMaskSel(isOutBlock, b, lenBytes[j - (blockSz - 8)]);
+                b = ctMaskSel(isOutBlock, lenBytes[j - (blockSz - 8)], b);
             }
 
             hashBlock[j] = b;
@@ -4307,7 +4307,7 @@ static byte TLSX_SecureRenegotiation_GetSize(SecureRenegotiation* data,
     byte length = OPAQUE8_LEN; /* empty info length */
 
     /* data will be NULL for HAVE_SERVER_RENEGOTIATION_INFO only */
-    if (data && data->enabled) {
+    if (data && data->enabled && data->verifySet) {
         /* client sends client_verify_data only */
         length += TLS_FINISHED_SZ;
 
@@ -4323,8 +4323,7 @@ static word16 TLSX_SecureRenegotiation_Write(SecureRenegotiation* data,
                                                     byte* output, int isRequest)
 {
     word16 offset = OPAQUE8_LEN; /* RenegotiationInfo length */
-
-    if (data && data->enabled) {
+    if (data && data->enabled && data->verifySet) {
         /* client sends client_verify_data only */
         XMEMCPY(output + offset, data->client_verify_data, TLS_FINISHED_SZ);
         offset += TLS_FINISHED_SZ;
@@ -4347,39 +4346,39 @@ static int TLSX_SecureRenegotiation_Parse(WOLFSSL* ssl, byte* input,
     int ret = SECURE_RENEGOTIATION_E;
 
     if (length >= OPAQUE8_LEN) {
-        if (ssl->secure_renegotiation == NULL) {
+        if (isRequest) {
         #ifndef NO_WOLFSSL_SERVER
-            if (isRequest && *input == 0) {
-            #ifdef HAVE_SERVER_RENEGOTIATION_INFO
-                if (length == OPAQUE8_LEN) {
-                    if (TLSX_Find(ssl->extensions,
-                                  TLSX_RENEGOTIATION_INFO) == NULL) {
-                        ret = TLSX_AddEmptyRenegotiationInfo(&ssl->extensions,
-                                                             ssl->heap);
-                        if (ret == WOLFSSL_SUCCESS)
-                            ret = 0;
+            if (ssl->secure_renegotiation == NULL) {
+                /* already in error state */
+                WOLFSSL_MSG("server SCR not available");
+            }
+            else if (!ssl->secure_renegotiation->enabled) {
+                if (*input == 0) {
+                    input++; /* get past size */
 
-                    } else {
-                        ret = 0;
-                    }
+                    ssl->secure_renegotiation->enabled = 1;
+                    TLSX_SetResponse(ssl, TLSX_RENEGOTIATION_INFO);
+                    ret = 0;
                 }
-            #else
-                ret = 0;  /* don't reply, user didn't enable */
-            #endif /* HAVE_SERVER_RENEGOTIATION_INFO */
+                else {
+                    /* already in error state */
+                    WOLFSSL_MSG("SCR client verify data present");
+                }
             }
-            #ifdef HAVE_SERVER_RENEGOTIATION_INFO
-            else if (!isRequest) {
-                /* don't do anything on client side */
-                ret = 0;
-            }
-            #endif
-        #endif
-        }
-        else if (isRequest) {
-        #ifndef NO_WOLFSSL_SERVER
-            if (*input == TLS_FINISHED_SZ) {
-                /* TODO compare client_verify_data */
-                ret = 0;
+            else if (*input == TLS_FINISHED_SZ) {
+                input++; /* get past size */
+
+                /* validate client verify data */
+                if (XMEMCMP(input,
+                            ssl->secure_renegotiation->client_verify_data,
+                            TLS_FINISHED_SZ) == 0) {
+                    WOLFSSL_MSG("SCR client verify data match");
+                    TLSX_SetResponse(ssl, TLSX_RENEGOTIATION_INFO);
+                    ret = 0;  /* verified */
+                } else {
+                    /* already in error state */
+                    WOLFSSL_MSG("SCR client verify data Failure");
+                }
             }
         #endif
         }
@@ -4443,14 +4442,8 @@ int TLSX_UseSecureRenegotiation(TLSX** extensions, void* heap)
 
 #ifdef HAVE_SERVER_RENEGOTIATION_INFO
 
-int TLSX_AddEmptyRenegotiationInfo(TLSX** extensions, void* heap)
+int TLSX_AddEmptyRenegotiationInfo(TLSX** extensions)
 {
-    int ret;
-
-    ret = TLSX_Push(extensions, TLSX_RENEGOTIATION_INFO, NULL, heap);
-    if (ret != 0)
-        return ret;
-
     /* send empty renegotiation_info extension */
     TLSX* ext = TLSX_Find(*extensions, TLSX_RENEGOTIATION_INFO);
     if (ext)
@@ -9382,7 +9375,7 @@ int TLSX_GetRequestSize(WOLFSSL* ssl, byte msgType, word16* pLength)
 
 #ifdef HAVE_EXTENDED_MASTER
     if (msgType == client_hello && ssl->options.haveEMS &&
-                                              !IsAtLeastTLSv1_3(ssl->version)) {
+                  (!IsAtLeastTLSv1_3(ssl->version) || ssl->options.downgrade)) {
         length += HELLO_EXT_SZ;
     }
 #endif
@@ -9483,7 +9476,8 @@ int TLSX_WriteRequest(WOLFSSL* ssl, byte* output, byte msgType, word16* pOffset)
 
 #ifdef HAVE_EXTENDED_MASTER
     if (msgType == client_hello && ssl->options.haveEMS &&
-                                              !IsAtLeastTLSv1_3(ssl->version)) {
+                  (!IsAtLeastTLSv1_3(ssl->version) || ssl->options.downgrade)) {
+        WOLFSSL_MSG("EMS extension to write");
         c16toa(HELLO_EXT_EXTMS, output + offset);
         offset += HELLO_EXT_TYPE_SZ;
         c16toa(0, output + offset);
@@ -9728,6 +9722,7 @@ int TLSX_WriteResponse(WOLFSSL *ssl, byte* output, byte msgType, word16* pOffset
 #ifdef HAVE_EXTENDED_MASTER
         if (ssl->options.haveEMS && msgType == server_hello &&
                                               !IsAtLeastTLSv1_3(ssl->version)) {
+            WOLFSSL_MSG("EMS extension to write");
             c16toa(HELLO_EXT_EXTMS, output + offset);
             offset += HELLO_EXT_TYPE_SZ;
             c16toa(0, output + offset);
@@ -9949,6 +9944,7 @@ int TLSX_Parse(WOLFSSL* ssl, byte* input, word16 length, byte msgType,
 #ifdef WOLFSSL_TLS13
                 if (IsAtLeastTLSv1_3(ssl->ctx->method->version) &&
                         msgType != client_hello &&
+                        msgType != server_hello &&
                         msgType != encrypted_extensions) {
                     return EXT_NOT_ALLOWED;
                 }
