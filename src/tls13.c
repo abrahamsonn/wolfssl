@@ -2268,6 +2268,11 @@ static int RestartHandshakeHash(WOLFSSL* ssl)
     #endif
     }
     hashSz = ssl->specs.hash_size;
+
+    /* check hash */
+    if (hash == NULL && hashSz > 0)
+        return BAD_FUNC_ARG;
+
     AddTls13HandShakeHeader(header, hashSz, 0, 0, message_hash, ssl);
 
     WOLFSSL_MSG("Restart Hash");
@@ -2281,7 +2286,8 @@ static int RestartHandshakeHash(WOLFSSL* ssl)
 
         /* Cookie Data = Hash Len | Hash | CS | KeyShare Group */
         cookie[idx++] = hashSz;
-        XMEMCPY(cookie + idx, hash, hashSz);
+        if (hash)
+            XMEMCPY(cookie + idx, hash, hashSz);
         idx += hashSz;
         cookie[idx++] = ssl->options.cipherSuite0;
         cookie[idx++] = ssl->options.cipherSuite;
@@ -2327,6 +2333,9 @@ static int SetupPskKey(WOLFSSL* ssl, PreSharedKey* psk)
 {
     int ret;
     byte suite[2];
+
+    if (psk == NULL)
+        return BAD_FUNC_ARG;
 
     if (ssl->options.noPskDheKe && ssl->arrays->preMasterSz != 0)
         return PSK_KEY_ERROR;
@@ -2566,10 +2575,6 @@ int SendTls13ClientHello(WOLFSSL* ssl)
                                        (ret = TLSX_EarlyData_Use(ssl, 0)) < 0) {
         return ret;
     }
-#endif
-#ifdef HAVE_QSH
-    if (QSH_Init(ssl) != 0)
-        return MEMORY_E;
 #endif
     /* Include length of TLS extensions. */
     ret = TLSX_GetRequestSize(ssl, client_hello, &length);
@@ -3888,10 +3893,6 @@ int DoTls13ClientHello(WOLFSSL* ssl, const byte* input, word32* inOutIdx,
         i += OPAQUE16_LEN;
         if ((i - begin) + totalExtSz > helloSz)
             return BUFFER_ERROR;
-
-    #ifdef HAVE_QSH
-        QSH_Init(ssl);
-    #endif
 
         /* Auto populate extensions supported unless user defined. */
         if ((ret = TLSX_PopulateExtensions(ssl, 1)) != 0)

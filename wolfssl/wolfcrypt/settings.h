@@ -233,6 +233,11 @@
     #define TFM_TIMING_RESISTANT
     #define ECC_TIMING_RESISTANT
     #define WC_RSA_BLINDING
+#if defined(WOLFSSL_ESPWROOM32)
+   #ifndef NO_ESP32WROOM32_CRYPT
+        #define WOLFSSL_ESP32WROOM32_CRYPT
+    #endif
+#endif
 #if !defined(WOLFSSL_USER_SETTINGS)
     #define HAVE_ECC
 #endif /* !WOLFSSL_USER_SETTINGS */
@@ -1647,9 +1652,9 @@ extern void uITRON4_free(void *p) ;
     #define HAVE_WOLF_EVENT
 
     #ifdef WOLFSSL_ASYNC_CRYPT_TEST
-        #define WC_ASYNC_DEV_SIZE 328+24
+        #define WC_ASYNC_DEV_SIZE 168
     #else
-        #define WC_ASYNC_DEV_SIZE 328
+        #define WC_ASYNC_DEV_SIZE 336
     #endif
 
     #if !defined(HAVE_CAVIUM) && !defined(HAVE_INTEL_QA) && \
