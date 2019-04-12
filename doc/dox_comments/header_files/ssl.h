@@ -5147,7 +5147,7 @@ WOLFSSL_API int wolfSSL_CTX_allow_anon_cipher(WOLFSSL_CTX*);
 
     \brief The wolfSSLv23_server_method() function is used to indicate
     that the application is a server and will support clients connecting
-    with protocol version from SSL 3.0 - TLS 1.2.  This function allocates
+    with protocol version from SSL 3.0 - TLS 1.3.  This function allocates
     memory for and initializes a new WOLFSSL_METHOD structure to be used when
     creating the SSL/TLS context with wolfSSL_CTX_new().
 
